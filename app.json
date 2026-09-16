@@ -3,7 +3,10 @@
   "displayName": "Trading Desk",
   "version": "0.2.2",
   "description": "Run and inspect the agent trading desk: talk to any member, watch the daily research chain, browse what each pod produced.",
-  "author": "trading-desk-app contributors",
+  "author": "chenmingwei23",
+  "homepage": "https://github.com/chenmingwei23/trading-desk",
+  "repository": "https://github.com/chenmingwei23/trading-desk",
+  "license": "MIT",
   "tags": [
     "trading",
     "research",

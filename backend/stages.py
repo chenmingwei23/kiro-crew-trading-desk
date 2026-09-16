@@ -24,14 +24,14 @@ from .paths import app_root
 #: "4 analyst roles × analyst_copies"). Used only when that module is missing.
 _FALLBACK_STAGES: tuple[tuple[str, tuple[str, ...], int | None], ...] = (
     (
-        "分析",
+        "Analysis",
         ("technicals-copy-*.md", "fundamentals-copy-*.md",
          "sentiment-copy-*.md", "news-copy-*.md"),
         None,
     ),
-    ("多空", ("bull-thesis.md", "bear-thesis.md"), 2),
-    ("提案", ("trade-proposal-initial.md",), 1),
-    ("风控", ("risk-aggressive.md", "risk-conservative.md", "risk-neutral.md"), 3),
+    ("Debate", ("bull-thesis.md", "bear-thesis.md"), 2),
+    ("Proposal", ("trade-proposal-initial.md",), 1),
+    ("Risk", ("risk-aggressive.md", "risk-conservative.md", "risk-neutral.md"), 3),
 )
 
 _ANALYST_ROLES = 4

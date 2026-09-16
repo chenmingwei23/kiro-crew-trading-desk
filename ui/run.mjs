@@ -1,7 +1,7 @@
 /** The Run page — today's chain of work. */
 
 import { useCallback, useEffect, useState } from 'react'
-import { t } from './i18n.mjs'
+import { phrase, t } from './i18n.mjs'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { DELIVERY_WORD, load, useLoader, SHAPE } from './data.mjs'
 import { ROW_GUTTER } from './parts.mjs'
@@ -124,7 +124,7 @@ function withArrows(nodes) {
 
 function ChainLane({ lane }) {
   const steps = (lane.steps || []).map((s, i) =>
-    _jsx(Step, { state: s.state, label: s.at ? `${s.label} ${s.at}` : s.label }, `s${i}`),
+    _jsx(Step, { state: s.state, label: s.at ? `${phrase(s.label)} ${s.at}` : phrase(s.label) }, `s${i}`),
   )
   return _jsx(Lane, { head: lane.member, headTone: C.accent, children: withArrows(steps) })
 }
@@ -143,7 +143,7 @@ function PodLane({ pod }) {
     ? _jsx('span', {
         className: 'td-mono',
         style: { color: C.danger, fontSize: F.micro, marginLeft: S.x3, fontFamily: MONO },
-        children: pod.fail_reason,
+        children: phrase(pod.fail_reason),
       }, 'fail')
     : null
   const children = withArrows(nodes)
@@ -161,14 +161,14 @@ function RunHead({ run, date, onDate, onToday, loading }) {
   const c = countPods(run && run.pods)
   return _jsxs(Card, {
     pad: sp(S.x2, S.x3),
-    // Monospace belongs on the run's identifier, not on the whole header: 回放,
-    // 已交 and 进行中 are prose, and prose in a machine typeface is what the app-ui
-    // standard rules out. The date and id below carry it themselves.
+    // Monospace belongs on the run's identifier, not on the whole header: the replay,
+    // delivered and in-progress words are prose, and prose in a machine typeface is what
+    // the app-ui standard rules out. The date and id below carry it themselves.
     style: { display: 'flex', alignItems: 'center', gap: S.x3, flexWrap: 'wrap', fontSize: F.meta },
     children: [
       run && run.live
         ? _jsx(Pill, { tone: 'ok', children: '● LIVE' })
-        : _jsx(Pill, { tone: 'quiet', children: '回放' }),
+        : _jsx(Pill, { tone: 'quiet', children: t('run_replay') }),
       _jsxs('span', {
         className: 'td-mono',
         style: { color: C.text, fontFamily: MONO },
@@ -178,11 +178,11 @@ function RunHead({ run, date, onDate, onToday, loading }) {
         style: { display: 'flex', gap: S.x2 },
         children: [
           _jsx('span', { style: { color: C.ok }, children: `${c.done} ${t('state_done')}` }),
-          _jsx('span', { style: { color: C.accent }, children: `${c.work} 进行中` }),
+          _jsx('span', { style: { color: C.accent }, children: t('run_in_progress', { n: c.work }) }),
           _jsx('span', { style: { color: c.fail ? C.danger : C.muted }, children: `${c.fail} ${t('state_fail')}` }),
         ],
       }),
-      loading ? _jsx('span', { style: { color: C.muted }, children: '刷新中…' }) : null,
+      loading ? _jsx('span', { style: { color: C.muted }, children: t('run_refreshing') }) : null,
       _jsxs('span', {
         style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: S.x2 },
         children: [
@@ -200,7 +200,7 @@ function RunHead({ run, date, onDate, onToday, loading }) {
               fontFamily: 'inherit',
             },
           }),
-          _jsx(Ghost, { onClick: onToday, children: '今天' }),
+          _jsx(Ghost, { onClick: onToday, children: t('day_today') }),
         ],
       }),
     ],
@@ -209,7 +209,7 @@ function RunHead({ run, date, onDate, onToday, loading }) {
 
 function Ticker({ events }) {
   const rows = events || []
-  if (!rows.length) return _jsx(Notice, { tone: 'info', children: '今天还没有事件。' })
+  if (!rows.length) return _jsx(Notice, { tone: 'info', children: t('run_no_events') })
   return _jsx(Card, {
     pad: sp(S.x1, 0),
     style: { maxHeight: L.scrollCap, overflowY: 'auto' },
@@ -231,7 +231,7 @@ function Ticker({ events }) {
             style: { color: C.accent, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
             children: e.who,
           }),
-          _jsx('span', { style: { color: e.hot ? C.text : C.muted }, children: e.msg }),
+          _jsx('span', { style: { color: e.hot ? C.text : C.muted }, children: phrase(e.msg) }),
         ],
       }, `${e.at}-${i}`),
     ),
@@ -284,13 +284,13 @@ export function RunPage({ date, onDate }) {
     children: [
       _jsx(StaleBar, { message: error, detail, onRetry: reload }),
       _jsx(RunHead, { run: data, date, onDate, onToday: () => onDate(todayStr()), loading }),
-      _jsx(Sect, { label: '指挥链' }),
+      _jsx(Sect, { label: t('run_chain') }),
       _jsx(LaneGroup, {
         children: (data.chain || []).map((lane) => _jsx(ChainLane, { lane }, lane.member)),
       }),
-      _jsx(Sect, { label: 'Pods', hint: '分析 → 多空辩论 → 提案 → 风险评审 → 组报告' }),
+      _jsx(Sect, { label: t('run_pods'), hint: t('run_pod_flow') }),
       _jsx(LaneGroup, { children: (data.pods || []).map((pod) => _jsx(PodLane, { pod }, pod.pod)) }),
-      _jsx(Sect, { label: '事件流（最近）' }),
+      _jsx(Sect, { label: t('run_events') }),
       _jsx(Ticker, { events: data.events }),
     ],
   })

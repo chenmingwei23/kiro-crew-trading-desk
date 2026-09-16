@@ -267,7 +267,7 @@ def test_apply_writes_a_valid_config(config_io: Any, desk_root: Path) -> None:
 
 
 def test_apply_is_atomic(config_io: Any, desk_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """§6 原子写: a failure at the rename must leave the original intact."""
+    """§6 atomic write: a failure at the rename must leave the original intact."""
     body = _parsed(desk_root)
     body["books"]["books"]["A"]["max_drawdown_pct"] = 9
     before = _yaml_bytes(desk_root)

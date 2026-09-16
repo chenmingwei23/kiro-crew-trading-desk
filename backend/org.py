@@ -38,47 +38,47 @@ _CORE_MEMBERS: tuple[dict[str, Any], ...] = (
         "name": "fund-manager",
         "title": "Fund Manager",
         "parent": None,
-        "duty": "统筹整张 desk 的日常运转，把当天的意图拆成研究与配置动作，并对最终结论负责。",
-        "output_sources": [{"label": "昨日汇报", "dir": "memory/briefs"}],
+        "duty": "Runs the desk's day-to-day operations, breaking the day's intent into research and allocation actions, and owns the final conclusion.",
+        "output_sources": [{"label": "Yesterday's brief", "dir": "memory/briefs"}],
     },
     {
         "id": "macro",
         "name": "macro-strategist",
         "title": "Macro Strategist",
         "parent": "fund",
-        "duty": "每天先给出宏观与市场环境判断，为各组选股框定风险偏好与主线。",
-        "output_sources": [{"label": "最近宏观简报", "dir": "teams/macro/reports"}],
+        "duty": "Each day, calls the macro and market-environment view first, framing the risk appetite and main themes for each pod's stock picking.",
+        "output_sources": [{"label": "Latest macro brief", "dir": "teams/macro/reports"}],
     },
     {
         "id": "desk",
         "name": "desk-manager",
         "title": "Desk Manager",
         "parent": "fund",
-        "duty_template": "统筹 {pod_count} 个组的研究，把各组结论汇总成一份可执行的桌面观点。",
-        "duty": "把各组的结论汇总成一份可执行的桌面观点，协调组间冲突与优先级。",
-        "output_sources": [{"label": "最近桌面观点", "dir": "teams/desk/reports"}],
+        "duty_template": "Coordinates research across {pod_count} pods, rolling each pod's conclusions into one executable desk view.",
+        "duty": "Rolls each pod's conclusions into one executable desk view, resolving conflicts and priorities across pods.",
+        "output_sources": [{"label": "Latest desk view", "dir": "teams/desk/reports"}],
     },
     {
         "id": "risk",
         "name": "risk-pod",
         "title": "Risk Pod",
         "parent": "fund",
-        "duty": "独立复核每一个提案的敞口、仓位与止损，是发单前最后一道闸门。",
-        "output_sources": [{"label": "最近风控复核", "dir": "teams/risk-pod/reports"}],
+        "duty": "Independently reviews every proposal's exposure, sizing and stops — the last gate before an order goes out.",
+        "output_sources": [{"label": "Latest risk review", "dir": "teams/risk-pod/reports"}],
     },
     {
         "id": "trader",
         "name": "trader",
         "title": "Trader",
         "parent": "fund",
-        "duty": "把通过复核的观点落成具体方案：标的、方向、规模、时点。",
+        "duty": "Turns reviewed views into concrete plans: ticker, direction, size, timing.",
     },
     {
         "id": "scrum",
         "name": "scrum-master",
         "title": "Scrum Master",
         "parent": "fund",
-        "duty": "维持 desk 的节奏，盯当天进度与卡点，确保该交的东西按时交。",
+        "duty": "Keeps the desk's rhythm, watching the day's progress and blockers so what is due gets delivered on time.",
     },
 )
 
@@ -116,8 +116,8 @@ def _fallback_members(root: Path) -> list[dict[str, Any]]:
                 "title": "Line Manager",
                 "parent": "desk",
                 "pod": pod,
-                "duty_template": "负责 {pod} 组（{tickers}）：把组内结论收敛成一份组报告。",
-                "output_sources": [{"label": "最近组报告", "dir": f"teams/{pod}/reports"}],
+                "duty_template": "Runs the {pod} pod ({tickers}): converges the pod's conclusions into one pod report.",
+                "output_sources": [{"label": "Latest pod report", "dir": f"teams/{pod}/reports"}],
             }
         )
     return out
@@ -126,8 +126,8 @@ def _fallback_members(root: Path) -> list[dict[str, Any]]:
 def _group_label(root: Path, pod: str) -> str:
     held = deskdata.books_holding(root, pod)
     if not held:
-        return f"{pod} 组"
-    return "Book " + "+".join(held) + f" · {pod} 组"
+        return f"{pod} pod"
+    return "Book " + "+".join(held) + f" · {pod} pod"
 
 
 def _duty(member: dict[str, Any], pod: str | None, tickers: list[str], pod_count: int) -> str:
@@ -206,25 +206,25 @@ def _state_from(
 
     The last three lines are three different situations that must not share one
     sentence. A member holding a key whose session the embed has not created yet
-    (straight after a reset, or a fresh binding) is NOT "尚未开工" — saying so on
+    (straight after a reset, or a fresh binding) is NOT "not started" — saying so on
     the Desk page contradicts the chat the user just opened.
     """
     failed = [e for e in mine if e.get("kind") == "failed"]
     if failed:
-        return "blocked", str(failed[-1].get("msg") or "卡住了，等人看一眼")
+        return "blocked", str(failed[-1].get("msg") or "stuck, needs a look")
     if running:
         latest = mine[-1].get("msg") if mine else None
-        return "working", str(latest or "正在处理今天的活")
+        return "working", str(latest or "working on today's tasks")
     delivered = [e for e in mine if e.get("kind") == "delivered"]
     if delivered:
-        return "idle", str(delivered[-1].get("msg") or "今天的活已交")
+        return "idle", str(delivered[-1].get("msg") or "today's work is delivered")
     if mine:
-        return "working", str(mine[-1].get("msg") or "手上的活还没收尾")
+        return "working", str(mine[-1].get("msg") or "the work in hand isn't wrapped up yet")
     if exists:
-        return "idle", "在位待命"
+        return "idle", "on station"
     if bound:
-        return "idle", "新会话已备好，等你说第一句"
-    return "idle", "尚未开工"
+        return "idle", "a new session is ready, waiting for your first message"
+    return "idle", "not started"
 
 
 #: An IC's ten roles all write into ``teams/<pod>/reports/<date>/<TICKER>/``. The
@@ -266,12 +266,12 @@ def _ic_state(done: int, total: int) -> tuple[str, str]:
     than a fourth state -- §2's cycle1 adjudication applies here too.
     """
     if total <= 0:
-        return "idle", "本组今天没有标的"
+        return "idle", "no tickers for this pod today"
     if done >= total:
-        return "idle", f"{done}/{total} 已交"
+        return "idle", f"{done}/{total} delivered"
     if done > 0:
-        return "working", f"{done}/{total} 进行中"
-    return "idle", f"0/{total} 尚未开工"
+        return "working", f"{done}/{total} in progress"
+    return "idle", f"0/{total} not started"
 
 
 def _newest_files(directory: Path, limit: int) -> list[Path]:
@@ -308,7 +308,7 @@ def _recent_outputs(root: Path, member: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
         except (OSError, ValueError):
             continue
-        label = str(source.get("label") or "产物")
+        label = str(source.get("label") or "output")
         for path in _newest_files(directory, _MAX_OUTPUTS):
             stem_date = path.name[:10] if len(path.name) >= 10 else ""
             out.append(
@@ -412,7 +412,7 @@ def build(
             "state_msg": state_msg,
             "slot_key": key,
             # §2 cycle2: whether the bound session is currently RUNNING. Whether it
-            # exists at all is already carried by slot_key (§3 keys the "尚未开工"
+            # exists at all is already carried by slot_key (§3 keys the "not started"
             # placeholder off a null key).
             "slot_live": running,
             "recent_outputs": _recent_outputs(root, raw),

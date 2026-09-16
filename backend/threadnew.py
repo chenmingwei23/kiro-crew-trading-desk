@@ -99,7 +99,7 @@ def title_for(gw: Any, main_key: str | None, main_msg: str, ts: str, given: str)
             if text:
                 return text
             break
-    return "新 thread"
+    return "new thread"
 
 
 # ---------------------------------------------------------------------------

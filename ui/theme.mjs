@@ -64,8 +64,8 @@ export const MONO = "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 
 // Every length on this surface comes from here. It exists because the surface
 // measurably did not have one: a census of the rendered DOM counted 216 off-grid
 // spacing values (1/2/3/5/6/10/14/18px all in use at once), ten distinct font
-// sizes between 8 and 18px, and sixteen line-heights — which is what "ui 下面都
-// 没对齐" looks like from the inside. Nothing lines up with anything when each
+// sizes between 8 and 18px, and sixteen line-heights — which is what "nothing in
+// the ui lines up" looks like from the inside. Nothing lines up with anything when each
 // element picked its own number.
 //
 // SPACING is a 4px grid. Off-grid values were snapped by one stated rule —

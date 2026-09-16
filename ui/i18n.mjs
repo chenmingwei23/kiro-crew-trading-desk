@@ -1,4 +1,4 @@
-/** 中文 / English for the app's own chrome (kirocrew-app-ui §6). */
+/** English / 中文 for the app's own chrome (kirocrew-app-ui §6). */
 
 import { useSyncExternalStore } from 'react'
 
@@ -14,9 +14,18 @@ function detect() {
     const saved = window.localStorage.getItem(KEY)
     if (saved && LANGS.some((l) => l.code === saved)) return saved
   } catch (err) {
-    /* private mode — fall through to the default */
+    /* private mode — fall through to the language guess */
   }
-  return 'zh-CN'
+  // A public app opens in English. A saved preference is honoured above; with
+  // none, a browser that asks for Chinese gets Chinese and everyone else English.
+  try {
+    const nav = typeof navigator !== 'undefined' ? navigator : null
+    const lang = (nav && (nav.language || (nav.languages && nav.languages[0]))) || ''
+    if (String(lang).toLowerCase().startsWith('zh')) return 'zh-CN'
+  } catch (err) {
+    /* no navigator — fall through to English */
+  }
+  return 'en'
 }
 
 let current = detect()
@@ -55,8 +64,8 @@ export function useLang() {
  * harmless to the person using it.
  */
 export function t(key, vars) {
-  const table = TABLE[current] || TABLE['zh-CN']
-  const fallback = TABLE['zh-CN']
+  const table = TABLE[current] || TABLE['en']
+  const fallback = TABLE['en']
   const entry = table[key] !== undefined ? table[key] : fallback[key]
   if (entry === undefined) return key
   if (typeof entry === 'function') return entry(vars || {})
@@ -131,50 +140,242 @@ export function memberTitle(member) {
  */
 
 //: Display phrases the BACKEND authors and hands over as finished text —
-//: `state_msg` and an `output_sources` label. They are the app's own words, but
-//: they do not arrive through `t()`, so the switch cannot reach them without a
-//: table keyed on the Chinese the backend wrote.
-const PHRASE_EN = {
-  // org.py `_state_from`
-  '卡住了，等人看一眼': 'stuck — needs a look',
-  正在处理今天的活: 'working on today',
-  今天的活已交: "today's work is in",
-  手上的活还没收尾: 'still wrapping up',
-  在位待命: 'on station',
-  '新会话已备好，等你说第一句': 'session ready — say the first word',
-  尚未开工: 'not started',
-  // org.py `_ic_state`
-  本组今天没有标的: 'no tickers in this pod today',
-  已交: 'delivered',
-  进行中: 'in progress',
-  // roster `output_sources` labels
-  昨日简报: "yesterday's brief",
-  昨日汇报: "yesterday's report",
-  今日宏观简报: "today's macro brief",
-  最近组报告: 'latest pod report',
-  最近风控报告: 'latest risk report',
-  成交记录: 'fills',
+//: `state_msg`, `output_sources` labels, duty prose, group labels, stage names and
+//: run-view words. English is canonical now, so this table is keyed on the ENGLISH
+//: the backend writes and maps to Chinese. A phrase absent here is returned as
+//: written by `phrase()`, which is what keeps crew-authored text untranslated.
+//:
+//: Counted / dated forms use `{n}`-style placeholders; `phrase()` fills them from
+//: the value it kept while decomposing, so the number or date survives the lookup.
+const PHRASE_ZH = {
+  // member state messages (state_msg)
+  'on station': '在位待命',
+  'not started': '尚未开工',
+  'not started today': '今天还没开工',
+  'stuck, needs a look': '卡住了，等人看一眼',
+  "working on today's tasks": '正在处理今天的活',
+  "today's work is delivered": '今天的活已交',
+  "the work in hand isn't wrapped up yet": '手上的活还没收尾',
+  'a new session is ready, waiting for your first message': '新会话已备好，等你说第一句',
+  'no tickers for this pod today': '本组今天没有覆盖标的',
+  'pod report delivered today': '今天组报告已交',
+  "today's output delivered": '今天的产出已交',
+  'no output today': '今天没有产出',
+  'no pod report back yet': '组报告还没回来',
+  'waiting on the rest': '在等其他人',
+  'no reason given': '没有给出原因',
+
+  // counted / dated forms — the value is kept, the phrase looked up
+  '{a}/{b} delivered': '{a}/{b} 已交',
+  '{a}/{b} in progress': '{a}/{b} 进行中',
+  '0/{b} not started': '0/{b} 尚未开工',
+  "today's {noun} delivered": '今天的{noun}已交',
+  'no {noun} delivered today': '今天没有{noun}交出',
+  '{n} outputs in, rolling up': '{n} 份产出到位，正在汇总',
+  '{n} outputs stalled at {hhmm}, no pod report yet': '{n} 份产出卡在 {hhmm}，组报告还没出',
+  'the last one stalled at {hhmm}': '最后一份卡在 {hhmm}',
+  '{a} of {b} pods delivered, {tail}': '{b} 个组里 {a} 个已交，{tail}',
+  '{n} pods running, {tail}': '{n} 个组在跑，{tail}',
+  '{date} is a historical record': '{date} 是历史记录',
+  "organizing today's research": '正在整理今天的研究',
+  "today's brief delivered": '今天的汇报已交',
+  'in progress': '进行中',
+
+  // output-source labels (output_sources[].label)
+  brief: '汇报',
+  "Yesterday's brief": '昨日汇报',
+  'macro brief': '宏观简报',
+  'Latest macro brief': '最近宏观简报',
+  'desk view': '桌面观点',
+  'Latest desk view': '最近桌面观点',
+  'risk review': '风控复核',
+  'Latest risk review': '最近风控复核',
+  'pod report': '组报告',
+  'Latest pod report': '最近组报告',
+  'CEO brief': 'CEO 汇报',
+  'run events': '运行事件',
+  output: '产出',
+
+  // duty prose (duty, duty_template)
+  "Runs the desk's day-to-day operations, breaking the day's intent into research and allocation actions, and owns the final conclusion.":
+    '负责桌子的日常运营，把当天的意图拆成研究和配置动作，并对最终结论负责。',
+  "Each day, calls the macro and market-environment view first, framing the risk appetite and main themes for each pod's stock picking.":
+    '每天先给出宏观和市场环境判断，为各组选股框定风险偏好和主要主题。',
+  "Coordinates research across {pod_count} pods, rolling each pod's conclusions into one executable desk view.":
+    '协调 {pod_count} 个行业组的研究，把各组结论汇成一份可执行的桌面观点。',
+  "Rolls each pod's conclusions into one executable desk view, resolving conflicts and priorities across pods.":
+    '把各组结论汇成一份可执行的桌面观点，处理组间的冲突和优先级。',
+  "Independently reviews every proposal's exposure, sizing and stops — the last gate before an order goes out.":
+    '独立复核每份提案的敞口、仓位和止损——下单前的最后一道关。',
+  'Turns reviewed views into concrete plans: ticker, direction, size, timing.':
+    '把复核过的观点变成具体计划：标的、方向、仓位、时机。',
+  "Keeps the desk's rhythm, watching the day's progress and blockers so what is due gets delivered on time.":
+    '把握桌子的节奏，盯着当天的进展和阻塞，让该交的东西按时交出。',
+  'Runs the {pod} pod ({tickers}): converges the pod\'s conclusions into one pod report.':
+    '带 {pod} 组（{tickers}）：把组内结论收敛成一份组报告。',
+
+  // group label (group)
+  '{pod} pod': '{pod} 组',
+  'Book {books} · {pod} pod': 'Book {books} · {pod} 组',
+
+  // stage names (stages[].name)
+  Analysis: '分析',
+  Debate: '多空',
+  Proposal: '提案',
+  Risk: '风控',
+
+  // run-view event words and step labels
+  dispatched: '已下派',
+  delivered: '已交',
+  stuck: '卡住',
+  progress: '进展',
+  started: '开工',
+  'brief received': '收到汇报',
+  'pod report not written': '组报告还没写',
+  'pod report delivered': '组报告已交',
+  'macro brief delivered': '宏观简报已交',
+  'risk review delivered': '风控复核已交',
+  'desk view delivered': '桌面观点已交',
+  'brief delivered ({path})': '汇报已交（{path}）',
+  'dispatched, {n} tickers assigned': '已下派，分了 {n} 个标的',
+  '{stage} {a}/{b}': '{stage} {a}/{b}',
+  '{stage} {a}/{b} back': '{stage} {a}/{b} 回来',
+  'no pod report that day': '那天没有组报告',
+  'CEO brief written': 'CEO 汇报已写',
+  "this round's dispatch is wrapped up": '这一轮派工收尾了',
+  'this step is done': '这一步完成了',
+
+  // thread fallbacks
+  'new thread': '新线程',
+  'dispatch · {worker}': '派工 · {worker}',
+  'just opened, nothing said yet': '刚开，还没说话',
+  'this session is gone': '这个会话已经不在了',
 }
+
+/**
+ * The templates in `PHRASE_ZH`, compiled once into matchers.
+ *
+ * The backend glues a value into the middle of its own sentence -- a count, a
+ * time, a pod name, a path -- so an exact lookup misses and the reader is left
+ * with English inside a Chinese screen. A template entry (`the last one stalled
+ * at {hhmm}`) becomes an anchored pattern whose captures fill the same
+ * placeholders on the Chinese side.
+ *
+ * Two guards keep this from reaching text a crew member wrote, which must never
+ * be translated:
+ *
+ * - The pattern is anchored at both ends, so it describes the WHOLE message.
+ * - A template needs at least `MIN_LITERAL` characters of its own words. Without
+ *   that floor, a short entry such as `{pod} pod` compiles to "anything ending in
+ *   ` pod`" and would rewrite the tail of a sentence someone dictated. Short
+ *   entries stay in the table for reference and are matched by shape instead:
+ *   `{stage} {a}/{b}` arrives as `Analysis 6/8`, handled by the counted rules.
+ *
+ * More literal text wins, so `0/{b} not started` is tried before the general
+ * `{a}/{b} not started`.
+ */
+const MIN_LITERAL = 10
+const TEMPLATES = Object.keys(PHRASE_ZH)
+  .filter((key) => key.includes('{'))
+  .map((key) => {
+    const names = [...key.matchAll(/\{(\w+)\}/g)].map((m) => m[1])
+    const literal = key.replace(/\{\w+\}/g, '')
+    const body = key
+      .split(/\{\w+\}/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('(.+?)')
+    return { key, re: new RegExp('^' + body + '$'), names, weight: literal.length }
+  })
+  .filter((entry) => entry.weight >= MIN_LITERAL)
+  .sort((a, b) => b.weight - a.weight)
 
 /**
  * A backend-authored display phrase, in the reader's language.
  *
  * A phrase the table does not know is returned AS WRITTEN. That is the important
  * half: `state_msg` carries an EVENT message when one exists, which a crew member
- * wrote, and the rule above says a switch does not translate those. Two shapes
- * are decomposed first, because the backend glues a value onto its own phrase:
- * a leading `N/M` count (an IC's progress) and a trailing ISO date (an output
- * label). The value is kept and only the phrase around it is looked up.
+ * wrote, and the rule above says a switch does not translate those. Four shapes
+ * are tried before giving up, because the backend glues a value onto its own
+ * phrase: a leading `N/M` count (an IC's progress), a trailing `N/M` count (a
+ * stage label such as `Analysis 6/8`), a trailing ISO date (an output label), and
+ * a template with the value in the middle. The value is kept and only the phrase
+ * around it is looked up.
+ *
+ * `depth` is internal. A template slot is translated by calling back in, and the
+ * cap stops a pathological table entry -- one whose slot could swallow the whole
+ * message -- from recursing forever.
  */
-export function phrase(text) {
+export function phrase(text, depth = 0) {
   const s = String(text || '').trim()
-  if (!s || current === 'zh-CN') return s
-  if (PHRASE_EN[s]) return PHRASE_EN[s]
-  const counted = s.match(/^(\d+\s*\/\s*\d+)\s+(.*)$/)
-  if (counted && PHRASE_EN[counted[2]]) return `${counted[1]} ${PHRASE_EN[counted[2]]}`
+  if (!s || current === 'en') return s
+  if (PHRASE_ZH[s] !== undefined) return PHRASE_ZH[s]
+  if (depth >= 3) return s
+  // Leading `N/M` count: `8/8 delivered`, `3/9 in progress`, `0/9 not started`.
+  const counted = s.match(/^(\d+)\s*\/\s*(\d+)\s+(.*)$/)
+  if (counted) {
+    const rest = counted[3]
+    // `0/N not started` has its own form; everything else is `{a}/{b} <phrase>`.
+    if (counted[1] === '0' && PHRASE_ZH['0/{b} ' + rest] !== undefined) {
+      return fill(PHRASE_ZH['0/{b} ' + rest], { a: counted[1], b: counted[2] })
+    }
+    const keyed = PHRASE_ZH['{a}/{b} ' + rest]
+    if (keyed !== undefined) return fill(keyed, { a: counted[1], b: counted[2] })
+  }
+  // Trailing `N/M` count, with an optional tail word: `Analysis 6/8`, `Debate 2/2 back`.
+  const trailing = s.match(/^(.*?)\s+(\d+)\s*\/\s*(\d+)(\s+\S+)?$/)
+  if (trailing) {
+    const head = PHRASE_ZH[trailing[1]]
+    const tail = (trailing[4] || '').trim()
+    const shape = tail ? `{stage} {a}/{b} ${tail}` : '{stage} {a}/{b}'
+    if (head !== undefined && PHRASE_ZH[shape] !== undefined) {
+      return fill(PHRASE_ZH[shape], { stage: head, a: trailing[2], b: trailing[3] })
+    }
+  }
+  // Trailing ISO date: `macro brief 2026-09-14`.
   const dated = s.match(/^(.*?)\s+(\d{4}-\d{2}-\d{2})$/)
-  if (dated && PHRASE_EN[dated[1]]) return `${PHRASE_EN[dated[1]]} ${dated[2]}`
+  if (dated && PHRASE_ZH[dated[1]] !== undefined) return `${PHRASE_ZH[dated[1]]} ${dated[2]}`
+  // A value in the middle: `3 outputs in, rolling up`, `dispatch · macro`.
+  for (const entry of TEMPLATES) {
+    const hit = s.match(entry.re)
+    if (!hit) continue
+    const vars = {}
+    entry.names.forEach((name, i) => {
+      // A slot can hold one of our OWN phrases -- `{tail}` in `2 pods running,
+      // {tail}` and `{noun}` in `today's {noun} delivered` are both table
+      // entries -- so a captured value is run through again. A slot holding a
+      // ticker, a path or a sentence someone wrote comes back unchanged, which
+      // is the same pass-through rule one level down.
+      vars[name] = phrase(hit[i + 1], depth + 1)
+    })
+    return fill(PHRASE_ZH[entry.key], vars)
+  }
   return s
+}
+
+/**
+ * The `group` field of a member row, in the reader's language.
+ *
+ * Its own field rather than a `phrase()` case, because the shape is a pod name
+ * with the word `pod` on the end -- as a general pattern that would rewrite the
+ * tail of any sentence a crew member happened to finish with that word. Naming
+ * the FIELD keeps the transform where the shape is actually guaranteed.
+ *
+ * Handles `Book A · example-megacap pod` and the single-book `example-megacap
+ * pod`, and a roster written before the suffix rule, which ended the label with
+ * the legacy Chinese noun (matched by escape so no literal CJK sits in source).
+ */
+export function groupLabel(group) {
+  const s = String(group || '').trim()
+  if (!s) return ''
+  const known = phrase(s)
+  if (known !== s) return known
+  const stripped = s.replace(/\s*(\u7ec4|pod)$/i, '')
+  return stripped === s ? s : `${stripped} ${t('pod_suffix')}`
+}
+
+/** Interpolate `{name}` placeholders, leaving an unknown one in place. */
+function fill(template, vars) {
+  return String(template).replace(/\{(\w+)\}/g, (m, name) => (vars[name] === undefined ? m : String(vars[name])))
 }
 
 const TABLE = {
@@ -293,6 +494,69 @@ const TABLE = {
     retry_hint: '再读一次',
     stale: '刚才没读到新的，这是上一次的内容',
     route_missing: ({ what }) => `这个版本还没有${what}这个功能`,
+
+    // migrated hardcoded strings (English is canonical; these are the Chinese reading)
+    chat_empty_title: '该成员尚未开工',
+    chat_empty_body: ({ name }) => `${name} 还没有会话，等它接到第一次任务后这里就能对话。`,
+    thread_route_note: '这个 gateway 的 backend 还没有 POST /thread，开线程要等它上线',
+    perm_await: ({ msg }) => `这一步在等批准：${msg}。批准要到主聊天窗口，这里没有审批按钮。`,
+    queued_line: ({ msg }) => `排队中：${msg}`,
+    sending: '发送中…',
+    transcript_empty: '还没有消息，说第一句话就开始了。',
+    reading_session: '正在读会话…',
+    followup_prefix: ({ title }) => `接着「${title}」继续：`,
+    followup_label: '下一件工作，说给它听：',
+    dismiss: '收起',
+    entry_dispatch: '派工',
+    entry_report: '汇报',
+    entry_steer: '插话',
+    entry_done: '完成',
+    send_failed_http: ({ status }) => `发送失败（HTTP ${status}）`,
+    profile_tooltip: ({ who }) => `看 ${who} 的 profile`,
+    unanchored_title: '没能挂到具体某句话的线程',
+    work_in_progress: ({ n }) => `进行中的工作 ${n}`,
+    sent_to: ({ who }) => `已送到 ${who}`,
+    sent: '已送出',
+    thread_finished: '这件工作已完成。',
+    add_followup: '追加后续工作',
+    view_profile: '查看 profile',
+    reset_idle: '重置对话',
+    reset_armed: '确认重置？',
+    reset_busy: '重置中…',
+    reset_missing_note: '后端未就绪',
+    reset_missing_tip: '后端还没有提供重置接口',
+    reset_tip: '换一个全新会话，旧会话保留',
+    day_today: '今天',
+    day_yesterday: '昨天',
+    attach_tip: '附件要走主聊天窗口的 @file，这里没有',
+    composer_more_tip: '/command、@file、模型选择和审批按钮属于主聊天窗口，这里没有',
+    read_conv_http: ({ status }) => `读不到会话（HTTP ${status}）`,
+    read_conv_err: ({ detail }) => `读不到会话（${detail}）`,
+    thread_failed_http: ({ status }) => `开线程失败（HTTP ${status}）`,
+    thread_missing_id: '开线程失败：返回里没有 thread id',
+    reset_failed_http: ({ status }) => `重置失败（HTTP ${status}）`,
+    reset_missing_slot: '重置失败：返回里没有 slot_key',
+    render_crash: ({ slotKey }) => `这段对话画不出来了（已记录到控制台）。会话本身没事，可以在主聊天窗口里找 ${slotKey}`,
+    run_replay: '回放',
+    run_in_progress: ({ n }) => `${n} 进行中`,
+    run_refreshing: '刷新中…',
+    run_no_events: '今天还没有事件。',
+    run_chain: '指挥链',
+    run_pods: 'Pods',
+    run_events: '事件流（最近）',
+    run_pod_flow: '分析 → 多空 → 提案 → 风控 → 组报告',
+    config_empty: '（空）',
+    config_none: '没有配置数据。',
+    config_header: '账户与行业组配置',
+    config_readonly: '只读',
+    config_display_only: '本期只做展示，改配置仍走 books.yaml / sectors.yaml。',
+    config_save_disabled: '保存（未开放）',
+    config_save_tip: '本期不开放保存',
+    config_hint_books: '账户与可用额度',
+    config_hint_sectors: '行业组与覆盖标的',
+    config_hint_constraints: '账户约束',
+    logs_no_artifacts: '这一天没有产物。',
+    desk_tickers: '覆盖标的',
 
     // settings page
     set_title: '设置',
@@ -417,6 +681,69 @@ const TABLE = {
     stale: 'Nothing new came back — this is what it last said',
     route_missing: ({ what }) => `This version does not have ${what} yet`,
 
+    // migrated hardcoded strings (English is canonical)
+    chat_empty_title: 'This colleague has not started yet',
+    chat_empty_body: ({ name }) => `${name} has no conversation yet; once it gets its first task you can talk here.`,
+    thread_route_note: 'This gateway’s backend has no POST /thread yet — opening a thread waits on it.',
+    perm_await: ({ msg }) => `This step is waiting on approval: ${msg}. Approve it in the main chat window; there are no approval buttons here.`,
+    queued_line: ({ msg }) => `Queued: ${msg}`,
+    sending: 'Sending…',
+    transcript_empty: 'No messages yet — say the first word and it begins.',
+    reading_session: 'Reading the conversation…',
+    followup_prefix: ({ title }) => `Continuing from “${title}”: `,
+    followup_label: 'Tell it the next piece of work:',
+    dismiss: 'Dismiss',
+    entry_dispatch: 'Dispatch',
+    entry_report: 'Report',
+    entry_steer: 'Steer',
+    entry_done: 'Done',
+    send_failed_http: ({ status }) => `Send failed (HTTP ${status})`,
+    profile_tooltip: ({ who }) => `View ${who}’s profile`,
+    unanchored_title: 'Threads that could not be pinned to a specific message',
+    work_in_progress: ({ n }) => `${n} in progress`,
+    sent_to: ({ who }) => `Sent to ${who}`,
+    sent: 'Sent',
+    thread_finished: 'This work is finished.',
+    add_followup: 'Add follow-up work',
+    view_profile: 'View profile',
+    reset_idle: 'Restart conversation',
+    reset_armed: 'Confirm restart?',
+    reset_busy: 'Restarting…',
+    reset_missing_note: 'Backend not ready',
+    reset_missing_tip: 'The backend has no restart endpoint yet',
+    reset_tip: 'Start a fresh session; the old one is kept',
+    day_today: 'Today',
+    day_yesterday: 'Yesterday',
+    attach_tip: 'Attachments go through the main chat window’s @file — not here',
+    composer_more_tip: '/command, @file, model choice and approval buttons belong to the main chat window, not here',
+    read_conv_http: ({ status }) => `Could not read the conversation (HTTP ${status})`,
+    read_conv_err: ({ detail }) => `Could not read the conversation (${detail})`,
+    thread_failed_http: ({ status }) => `Could not open the thread (HTTP ${status})`,
+    thread_missing_id: 'Could not open the thread: the response carried no thread id',
+    reset_failed_http: ({ status }) => `Restart failed (HTTP ${status})`,
+    reset_missing_slot: 'Restart failed: the response carried no slot_key',
+    render_crash: ({ slotKey }) => `This conversation could not be drawn (logged to the console). The session itself is fine — find ${slotKey} in the main chat window.`,
+    run_replay: 'Replay',
+    run_in_progress: ({ n }) => `${n} in progress`,
+    run_refreshing: 'Refreshing…',
+    run_no_events: 'No events today yet.',
+    run_chain: 'Reports to you',
+    run_pods: 'Pods',
+    run_events: 'Run events (recent)',
+    run_pod_flow: 'Analysis → Debate → Proposal → Risk → pod report',
+    config_empty: '(empty)',
+    config_none: 'No config data.',
+    config_header: 'Accounts and sector-team configuration',
+    config_readonly: 'Read-only',
+    config_display_only: 'This release is display-only; config changes still go through books.yaml / sectors.yaml.',
+    config_save_disabled: 'Save (not enabled)',
+    config_save_tip: 'Saving is not enabled in this release',
+    config_hint_books: 'Accounts and available capital',
+    config_hint_sectors: 'Sector teams and their tickers',
+    config_hint_constraints: 'Account constraints',
+    logs_no_artifacts: 'Nothing was produced on this day.',
+    desk_tickers: 'Tickers',
+
     set_title: 'Settings',
     set_lang: 'Interface language',
     set_lang_desc:
@@ -431,4 +758,21 @@ const TABLE = {
     set_data: 'Where the data lives',
     set_data_desc: ({ root }) => `This desk’s files are under ${root}`,
   },
+}
+
+/**
+ * The key set of one table, for the parity check in `tests/test_i18n.py`.
+ *
+ * Needed because `t()` deliberately falls back to English when a Chinese key is
+ * missing -- the right behaviour on screen, and the reason a gap cannot be found
+ * by calling `t()`: it returns real English, not the key name. So the tables get
+ * compared to each other directly.
+ */
+export function tableKeys(code) {
+  return Object.keys(TABLE[code] || {})
+}
+
+/** The languages the tables actually carry, for the same check. */
+export function tableLangs() {
+  return Object.keys(TABLE)
 }

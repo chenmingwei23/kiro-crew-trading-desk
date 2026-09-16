@@ -24,36 +24,39 @@ ORG: dict[str, Any] = {
     "members": [
         {
             "id": "fund", "name": "fund-manager", "title": "Fund Manager",
-            "duty": "统筹整张 desk 的日常运转", "parent": None, "group": None,
+            "duty": "Runs the desk's day-to-day operations, breaking the day's intent into research and allocation actions, and owns the final conclusion.",
+            "parent": None, "group": None,
             "pod": None, "tickers": [], "state": "working",
-            "state_msg": "正在组织今天的全桌研究", "slot_key": "chat-1001-1700000001",
-            "recent_outputs": [{"label": "昨日汇报", "path": "memory/briefs/2026-09-08.md"}],
+            "state_msg": "organizing today's research", "slot_key": "chat-1001-1700000001",
+            "recent_outputs": [{"label": "Yesterday's brief", "path": "memory/briefs/2026-09-08.md"}],
         },
         {
             "id": "lm-test-alpha", "name": "line-manager", "title": "Line Manager",
-            "duty": "带 AI 算力组，把四只票的读研串成一份组报告", "parent": "desk",
-            "group": "Book A · test-alpha 组", "pod": "test-alpha",
+            "duty": "Runs the test-alpha pod (AAPL, MSFT, GOOGL, ORCL): converges the pod's conclusions into one pod report.",
+            "parent": "desk",
+            "group": "Book A · test-alpha pod", "pod": "test-alpha",
             "tickers": ["AAPL", "MSFT", "GOOGL", "ORCL"], "state": "idle",
-            "state_msg": "组报告已交", "slot_key": None,
-            "recent_outputs": [{"label": "组报告", "path": "teams/test-alpha/reports/2026-09-07.md"}],
+            "state_msg": "pod report delivered today", "slot_key": None,
+            "recent_outputs": [{"label": "pod report", "path": "teams/test-alpha/reports/2026-09-07.md"}],
         },
         {
             "id": "desk", "name": "desk-manager", "title": "Desk Manager",
-            "duty": "把各组报告汇成全桌视图", "parent": "fund", "group": None,
+            "duty": "Rolls each pod's conclusions into one executable desk view, resolving conflicts and priorities across pods.",
+            "parent": "fund", "group": None,
             "pod": None, "tickers": [], "state": "blocked",
-            "state_msg": "在等风控回复", "slot_key": None, "recent_outputs": [],
+            "state_msg": "waiting on risk review", "slot_key": None, "recent_outputs": [],
         },
     ]
 }
 
 RUN: dict[str, Any] = {
     "date": "2026-09-09", "live": True,
-    "chain": [{"member": "fund", "steps": [{"label": "收到指令", "state": "done", "at": "08:58"},
-                                           {"label": "汇报", "state": "todo", "at": None}]}],
+    "chain": [{"member": "fund", "steps": [{"label": "brief received", "state": "done", "at": "08:58"},
+                                           {"label": "brief", "state": "todo", "at": None}]}],
     "pods": [{"pod": "test-alpha", "state": "done",
-              "stages": [{"name": "分析", "done": 32, "total": 32}],
+              "stages": [{"name": "Analysis", "done": 32, "total": 32}],
               "delivered_at": "09:41", "fail_reason": None}],
-    "events": [{"at": "09:41", "who": "test-alpha", "msg": "组报告已交", "hot": True}],
+    "events": [{"at": "09:41", "who": "test-alpha", "msg": "pod report delivered", "hot": True}],
 }
 
 CONFIG: dict[str, Any] = {
@@ -68,14 +71,14 @@ VALIDATE_OK: dict[str, Any] = {"ok": True, "errors": [], "diff": ""}
 ARTIFACTS: dict[str, Any] = {
     "dates": ["2026-09-09", "2026-09-07"],
     "tree": [
-        {"group": "CEO 汇报", "files": [{"label": "brief", "path": "memory/briefs/2026-09-09.md"}]},
-        {"group": "test-alpha", "files": [{"label": "组报告", "path": "teams/test-alpha/reports/2026-09-09.md"}]},
+        {"group": "CEO brief", "files": [{"label": "brief", "path": "memory/briefs/2026-09-09.md"}]},
+        {"group": "test-alpha", "files": [{"label": "pod report", "path": "teams/test-alpha/reports/2026-09-09.md"}]},
     ],
 }
 
 EVENT: dict[str, Any] = {
     "at": "2026-09-09T09:41:00Z", "run_date": "2026-09-09", "who": "test-alpha",
-    "kind": "delivered", "msg": "组报告已交",
+    "kind": "delivered", "msg": "pod report delivered",
 }
 
 # --- §11.2 rev6 threads (a thread is the session the conductor opened) ------
@@ -83,11 +86,11 @@ EVENT: dict[str, Any] = {
 THREADS: dict[str, Any] = {
     "threads": [
         {
-            "id": "th-fund-2026-09-07-1", "kind": "dispatch", "title": "宏观简报",
+            "id": "th-fund-2026-09-07-1", "kind": "dispatch", "title": "macro brief",
             "member": "macro", "state": "done",
             "opened_at": "2026-09-07T16:24:06.270955Z",
             "participants": ["fund", "macro"],
-            "last_msg": "今日宏观简报已交",
+            "last_msg": "today's macro brief delivered",
             "anchor": None,
             "entry_count": 2,
             "last_ts": "2026-09-07T16:24:06.270955Z",
@@ -97,11 +100,11 @@ THREADS: dict[str, Any] = {
                      "artifacts": ["teams/macro/reports/2026-09-07.md"]},
         },
         {
-            "id": "th-fund-2026-09-07-2", "kind": "thread", "title": "test-alpha 组研究",
+            "id": "th-fund-2026-09-07-2", "kind": "thread", "title": "test-alpha pod research",
             "member": "fund", "state": "running",
             "opened_at": "2026-09-07T16:43:30.607782Z",
             "participants": ["fund", "desk", "lm-test-alpha"],
-            "last_msg": "风险评审进行中",
+            "last_msg": "risk review in progress",
             "anchor": None,
             "entry_count": 3,
             "last_ts": "2026-09-07T17:10:00.000000Z",
@@ -117,11 +120,11 @@ THREADS: dict[str, Any] = {
 THREADS_LINE_MANAGER: dict[str, Any] = {
     "threads": [
         {
-            "id": "th-lm-test-alpha-2026-09-07-1", "kind": "thread", "title": "AAPL 深读",
+            "id": "th-lm-test-alpha-2026-09-07-1", "kind": "thread", "title": "AAPL deep dive",
             "member": "lm-test-alpha", "state": "running",
             "opened_at": "2026-09-07T16:50:00.000000Z",
             "participants": ["lm-test-alpha"],
-            "last_msg": "四个角度分头研究中",
+            "last_msg": "four angles under research in parallel",
             "anchor": None,
             "entry_count": 0,
             "last_ts": None,
@@ -144,7 +147,7 @@ SAY_RESULT: dict[str, Any] = {"ok": True, "delivered_to": "lm-test-alpha"}
 ANCHOR: dict[str, Any] = {
     "main_msg": "m-fba3291fbb0b4b2b",
     "ts": "2026-09-07T16:19:06.270955Z",
-    "preview": "研究 test-alpha 组，重点看 HBM 供给和推理需求",
+    "preview": "Research the test-alpha pod, focus on HBM supply",
 }
 
 ANCHOR_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
@@ -156,7 +159,7 @@ ANCHOR_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
     ("main_msg not a string", lambda d: d.__setitem__("main_msg", 17)),
     ("preview over 60 characters", lambda d: d.__setitem__("preview", "x" * 61)),
     ("session key in preview",
-     lambda d: d.__setitem__("preview", "见 chat-1001-1700000001")),
+     lambda d: d.__setitem__("preview", "see chat-1001-1700000001")),
     ("session key in main_msg",
      lambda d: d.__setitem__("main_msg", "dashboard_chat-1-2")),
 ]
@@ -178,7 +181,7 @@ def test_contract_examples_pass() -> None:
     schema.assert_artifacts(ARTIFACTS)
     schema.assert_event_record(EVENT)
     schema.assert_event_record(
-        dict(EVENT, kind="stage", stage={"name": "分析", "done": 3, "total": 32})
+        dict(EVENT, kind="stage", stage={"name": "Analysis", "done": 3, "total": 32})
     )
 
 
@@ -198,7 +201,7 @@ def test_not_started_is_a_pod_state() -> None:
 ORG_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
     ("member id off-vocabulary", lambda d: d["members"][0].__setitem__("id", "ceo")),
     ("state not in enum", lambda d: d["members"][0].__setitem__("state", "running")),
-    ("duty leaks internals", lambda d: d["members"][0].__setitem__("duty", "跑 plan-all 再落 sentinel")),
+    ("duty leaks internals", lambda d: d["members"][0].__setitem__("duty", "run plan-all then write sentinel")),
     ("missing key", lambda d: d["members"][0].pop("state_msg")),
     ("extra key", lambda d: d["members"][0].__setitem__("cost_usd", 3)),
     ("tickers on a non-line-manager", lambda d: d["members"][0].__setitem__("tickers", ["AAPL"])),
@@ -255,7 +258,7 @@ EVENT_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
     ("at not ISO", lambda d: d.__setitem__("at", "09:41")),
     ("run_date not a date", lambda d: d.__setitem__("run_date", "today")),
     ("extra key", lambda d: d.__setitem__("tokens", 12)),
-    ("stage total missing", lambda d: d.__setitem__("stage", {"name": "分析", "done": 1})),
+    ("stage total missing", lambda d: d.__setitem__("stage", {"name": "Analysis", "done": 1})),
 ]
 
 VALIDATE_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
@@ -344,7 +347,7 @@ THREADS_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
      lambda d: d["threads"][0].__setitem__("last_ts", "chat-1001-1700000001")),
     ("extra key", lambda d: d["threads"][0].__setitem__("session", "x")),
     ("session key in last_msg",
-     lambda d: d["threads"][0].__setitem__("last_msg", "已派 chat-1001-1700000001")),
+     lambda d: d["threads"][0].__setitem__("last_msg", "dispatched chat-1001-1700000001")),
     ("session key in title",
      lambda d: d["threads"][0].__setitem__("title", "td-fund-1788796788")),
     ("qualified session key in title",
@@ -380,7 +383,7 @@ THREADS_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
      lambda d: d["threads"][0].__setitem__("title", d["threads"][0]["slot_key"])),
     ("slot_key's own key repeated in anchor preview",
      lambda d: d["threads"][0].__setitem__(
-         "anchor", dict(ANCHOR, preview=f"已开 {d['threads'][0]['slot_key']}"))),
+         "anchor", dict(ANCHOR, preview=f"opened {d['threads'][0]['slot_key']}"))),
 ]
 
 THREAD_DETAIL_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
@@ -390,7 +393,7 @@ THREAD_DETAIL_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
     ("anchor preview too long",
      lambda d: d.__setitem__("anchor", dict(ANCHOR, preview="x" * 61))),
     ("anchor leaks a session key",
-     lambda d: d.__setitem__("anchor", dict(ANCHOR, preview="见 chat-1001-1700000001"))),
+     lambda d: d.__setitem__("anchor", dict(ANCHOR, preview="see chat-1001-1700000001"))),
     ("state off-enum", lambda d: d.__setitem__("state", "open")),
     ("session key in id", lambda d: d.__setitem__("id", "th-fund-2026-09-07-1-chat-1-2")),
     # rev6 deleted entries: the panel renders the clone's own transcript, so a
@@ -405,7 +408,7 @@ THREAD_DETAIL_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
     ("agent absent", lambda d: d.pop("agent")),
     ("agent not a desk agent", lambda d: d.__setitem__("agent", "kirocrew")),
     ("session key in last_msg",
-     lambda d: d.__setitem__("last_msg", "见 chat-1001-1700000001")),
+     lambda d: d.__setitem__("last_msg", "see chat-1001-1700000001")),
 ]
 
 SAY_MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
@@ -443,7 +446,7 @@ def test_anchor_accepts_both_states() -> None:
 def test_entry_summary_lets_the_ui_skip_a_fetch_per_thread() -> None:
     """§11.2: entry_count and last_ts are required on the listing.
 
-    They exist so the chip reads "N 条动态 · 最新 hh:mm" from one request. rev6
+    They exist so the chip reads "N updates · latest hh:mm" from one request. rev6
     moved their source: entry_count counts the clone's visible rows, last_ts
     takes the latest row that HAS a ts. Rows without one therefore give a count
     with no stamp -- measured against ``backend.threads._build``, which returns
@@ -554,12 +557,12 @@ def test_say_result_mutation_rejected(
 def test_every_session_key_shape_is_caught(leak: str) -> None:
     """§8.2 red line, one case per shape the regex covers."""
     with pytest.raises(ContractError):
-        schema.assert_no_session_key({"entries": [{"text": f"见 {leak}"}]})
+        schema.assert_no_session_key({"entries": [{"text": f"see {leak}"}]})
     with pytest.raises(ContractError):
         schema.assert_no_session_key({"nested": {"deep": [[leak]]}})
     with pytest.raises(ContractError):
         schema.assert_no_session_key({leak: "as a key name"})
-    schema.assert_no_session_key({"text": "已派 test-alpha 组，结果落 teams/test-alpha/reports/"})
+    schema.assert_no_session_key({"text": "dispatched test-alpha pod, output at teams/test-alpha/reports/"})
 
 
 def test_thread_member_scope_is_enforced() -> None:
@@ -574,7 +577,7 @@ def test_org_profiles_map_is_checked_when_present() -> None:
     schema.assert_org(ORG)  # no profiles key at all
     good = _mutate(ORG, lambda d: d.__setitem__("profiles", {
         "fund": {"alias": "fund-manager", "avatar_letter": "F",
-                 "reports_label": "汇报", "agent": "tada-fund-manager"},
+                 "reports_label": "brief", "agent": "tada-fund-manager"},
     }))
     schema.assert_org(good)
     for name, mutate in (

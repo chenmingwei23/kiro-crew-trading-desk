@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { appSdk, resetMember, uiKit } from './data.mjs'
-import { memberTitle, t } from './i18n.mjs'
+import { memberTitle, phrase, t } from './i18n.mjs'
 import { Avatar, C, Dot, F, Ghost, L, LH, MONO, R, S, SHADOW, W, hair, memberKind, memberLetter, rule, sp } from './theme.mjs'
 
 
@@ -11,10 +11,10 @@ import { Avatar, C, Dot, F, Ghost, L, LH, MONO, R, S, SHADOW, W, hair, memberKin
 const RESET_ARM_MS = 4000
 
 const RESET_LABEL = {
-  idle: '重置对话',
-  armed: '确认重置？',
-  busy: '重置中…',
-  missing: '重置对话',
+  idle: () => t('reset_idle'),
+  armed: () => t('reset_armed'),
+  busy: () => t('reset_busy'),
+  missing: () => t('reset_idle'),
 }
 
 /**
@@ -52,7 +52,7 @@ function ResetButton({ memberId, onReset }) {
     setUi({ phase: 'busy', error: '' })
     const res = await resetMember(memberId)
     if (res.missing) {
-      setUi({ phase: 'missing', error: '后端未就绪' })
+      setUi({ phase: 'missing', error: t('reset_missing_note') })
       return
     }
     if (res.error) {
@@ -80,9 +80,9 @@ function ResetButton({ memberId, onReset }) {
         disabled: ui.phase === 'busy' || ui.phase === 'missing',
         title:
           ui.phase === 'missing'
-            ? '后端还没有提供重置接口'
-            : '换一个全新会话，旧会话保留',
-        children: RESET_LABEL[ui.phase],
+            ? t('reset_missing_tip')
+            : t('reset_tip'),
+        children: RESET_LABEL[ui.phase](),
       }),
     ],
   })
@@ -233,7 +233,7 @@ export function SlackRow({ member, agent, isUser, relay, relayed, timestamp, tim
   // Three authors, and a relayed row is never the first of them. A row that
   // arrived through `session_send` carries `role: 'user'` but the reader did not
   // write it, so it is drawn as whoever sent it -- or, when that sender belongs to
-  // no member, as a neutral non-person rather than as 你 (§rev7 P0#3).
+  // no member, as a neutral non-person rather than as the reader (§rev7 P0#3).
   const who = relay
     ? {
         letter: memberLetter(relay),
@@ -361,7 +361,7 @@ export function SlackRow({ member, agent, isUser, relay, relayed, timestamp, tim
 /**
  * The hover actions Slack floats over a row's top-right corner.
  *
- * `开线程` can only OPEN one. Nothing in the desk's API creates a thread — a
+ * The thread action can only OPEN one. Nothing in the desk's API creates a thread — a
  * thread is a dispatch the crew made, and `/threads` only reports them — so on a
  * message that has none the button says why instead of pretending.
  */
@@ -507,8 +507,8 @@ function dayName(ts) {
   const now = new Date()
   const yesterday = new Date(now)
   yesterday.setDate(now.getDate() - 1)
-  if (day.toDateString() === now.toDateString()) return '今天'
-  if (day.toDateString() === yesterday.toDateString()) return '昨天'
+  if (day.toDateString() === now.toDateString()) return t('day_today')
+  if (day.toDateString() === yesterday.toDateString()) return t('day_yesterday')
   return day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
@@ -564,7 +564,7 @@ const CAPS_LABEL = /^[A-Z][A-Z0-9][A-Z0-9 '()/&,.-]{0,58}:(?:\s|$)/
  * `relayed` and `sender` are not bookkeeping: a relayed row arrives with
  * `role: 'user'` because the gateway injected it as a turn, but the reader did NOT
  * write it -- in a thread's clone session the first such row is the conductor's own
- * brief. Drawing it as 你 puts a manager's internal instructions in the reader's
+ * brief. Drawing it as the reader puts a manager's internal instructions in the reader's
  * mouth, which is worse than printing the envelope was. So the sender travels out
  * of here and decides the row's attribution.
  */
@@ -676,7 +676,7 @@ export function chatItems(messages, opts) {
       const first = role === 'user' && !seenUser
       if (role === 'user') seenUser = true
       // Protocol beats seed: a run prompt is a run prompt wherever it sits, and
-      // labelling it 任务简报 would misdescribe what the reader is opening.
+      // labelling it the brief would misdescribe what the reader is opening.
       const fold = isProtocolShape(body) ? 'protocol' : seedFold && first ? 'brief' : null
       if (fold === 'brief' && seedHide) return
       items.push({
@@ -717,14 +717,14 @@ export function chatItems(messages, opts) {
 /**
  * A member's turn is one thing they did, so it reads as one row (§13.1).
  *
- * The reader asked one question and got four paragraphs of narration back — "读一下
- * skill", "先开 thread", "thread 已开, 现在 seed 它", "已开 thread: …" — with the
+ * The reader asked one question and got four paragraphs of narration back — "read the
+ * skill", "open a thread first", "thread opened, now seed it", "opened thread: …" — with the
  * machinery between them and a reply bar hanging off three of them. Every one of
  * those is the manager THINKING OUT LOUD while working. Only the last paragraph is
  * the answer, and the main conversation is meant to be a result stream: the
  * starting point and the end point, not the walk between them.
  *
- * So one turn collapses to: the author line, one grey `过程 · N 步` line holding the
+ * So one turn collapses to: the author line, one grey `N steps` line holding the
  * intermediate prose AND the tool calls in document order, and the final paragraph.
  *
  * Turn boundaries are NOT a new idea invented here — they are exactly the block
@@ -734,7 +734,7 @@ export function chatItems(messages, opts) {
  *
  * What this deliberately never folds:
  *  - The READER's own rows. Two questions typed a minute apart are two questions;
- *    hiding the first behind a fold labelled 过程 would call the reader's words
+ *    hiding the first behind a fold labelled "steps" would call the reader's words
  *    machinery and lose one of them.
  *  - Permission rows, errors, day dividers, queued rows. A live approval gate is
  *    the one thing a reader must see (§9 ruling), and it never became a turn item
@@ -842,8 +842,8 @@ const SESSION_KEY = /^(?:chat|td)-[A-Za-z0-9]+-\d+$/
 /**
  * Prose the reader should not have to decode (§rev9.1 finding 1).
  *
- * A receipt used to read "已开 thread：… —— `chat-9301-1700004001`（在侧栏 `Trading
- * Desk/threads` 下）", which hands a reader two of our internal facts: a session key
+ * A receipt used to read "opened thread: … —— `chat-9301-1700004001` (under `Trading
+ * Desk/threads` in the sidebar)", which hands a reader two of our internal facts: a session key
  * and a sidebar path. rev8's prompt work stopped new messages carrying them; this is
  * the rendering-layer floor under the HISTORY, which cannot be rewritten.
  *
@@ -1020,7 +1020,7 @@ export const BODY_TEXT = { fontSize: `${BODY_PX}px`, lineHeight: BODY_LH, color:
  * any filing aside are stripped, opens with "opened a thread" in either language. The
  * title is what follows, cut at the em-dash or the full stop the narration starts
  * after. Returns null for anything else, including a message that merely MENTIONS a
- * thread -- "thread 里 macro 说…" is a report, not a receipt.
+ * thread -- "in the thread macro said…" is a report, not a receipt.
  */
 const RECEIPT_HEAD = [
   /^已开\s*thread\s*[：:]\s*(.+)$/,
@@ -1293,7 +1293,7 @@ export const FOLD_WORD = {
  * they wrote while running it (§13.1).
  *
  * There is deliberately ONE fold component and one vocabulary. Two grey lines that
- * look identical but read differently ("1 tool call" here, "过程 · 3 步" there) is
+ * look identical but read differently ("1 tool call" here, "3 steps" there) is
  * the same inconsistency the reader called messy, and to someone who does not want
  * to read either, a paragraph of narration and a tool call are the same thing: a
  * step. So everything is counted in steps.
@@ -1385,7 +1385,7 @@ export function WalkFold({ steps }) {
  *
  * One step per paragraph of narration and one per tool call or reasoning trace, so
  * the count means the same thing wherever the line appears: a run of three calls
- * with no reply yet reads `过程 · 3 步`, exactly as three calls inside a turn do.
+ * with no reply yet reads `3 steps`, exactly as three calls inside a turn do.
  */
 export function walkSteps(items) {
   const out = []
@@ -1540,7 +1540,7 @@ export function Composer({ draft, setDraft, running, onSend, sendError, placehol
             children: [
               _jsx('button', {
                 disabled: true,
-                title: '附件要走主聊天窗口的 @file，这里没有',
+                title: t('attach_tip'),
                 style: {
                   background: 'transparent',
                   border: hair(C.border),
@@ -1583,8 +1583,8 @@ export function Composer({ draft, setDraft, running, onSend, sendError, placehol
         style: { display: 'flex', justifyContent: 'flex-end', padding: sp(S.x1, S.half, '0') },
         children: _jsx('span', {
           style: { fontSize: F.meta, color: C.muted },
-          title: '/command、@file、模型选择和审批按钮属于主聊天窗口，这里没有',
-          children: 'Enter 发送 · Shift+Enter 换行',
+          title: t('composer_more_tip'),
+          children: t('composer_hint'),
         }),
       }),
     ],
@@ -1667,7 +1667,7 @@ export function ChatHead({ member, agent, onProfile, onReset, extra }) {
             },
             children: [
               _jsx(Dot, { state: member.state }),
-              _jsx('span', { children: member.state_msg || member.title || '' }),
+              _jsx('span', { children: phrase(member.state_msg) || member.title || '' }),
             ],
           }),
         ],
@@ -1677,7 +1677,7 @@ export function ChatHead({ member, agent, onProfile, onReset, extra }) {
         children: [
           extra || null,
           _jsx(ResetButton, { memberId: member.id, onReset }, member.id),
-          _jsx(Ghost, { onClick: onProfile, children: '查看 profile' }),
+          _jsx(Ghost, { onClick: onProfile, children: t('view_profile') }),
         ],
       }),
     ],

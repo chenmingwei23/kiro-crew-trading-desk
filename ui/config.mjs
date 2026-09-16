@@ -68,7 +68,7 @@ function DataNode({ label, value, depth }) {
     depth,
     children: keys.length
       ? keys.map((k) => _jsx(DataNode, { label: k, value: value[k], depth: depth + 1 }, k))
-      : [_jsx('span', { style: { color: C.muted, fontSize: F.meta }, children: '（空）' }, 'empty')],
+      : [_jsx('span', { style: { color: C.muted, fontSize: F.meta }, children: t('config_empty') }, 'empty')],
   })
 }
 
@@ -103,7 +103,7 @@ function sectionBody(title, value) {
     return _jsx(DataNode, { label: title, value, depth: 0 })
   }
   const keys = Object.keys(value)
-  if (!keys.length) return _jsx('span', { style: { color: C.muted, fontSize: F.meta }, children: '（空）' })
+  if (!keys.length) return _jsx('span', { style: { color: C.muted, fontSize: F.meta }, children: t('config_empty') })
   return _jsx('div', {
     style: { display: 'flex', flexDirection: 'column', gap: S.x1 },
     children: keys.map((k) => _jsx(DataNode, { label: k, value: value[k], depth: 0 }, k)),
@@ -134,7 +134,7 @@ export function ConfigPage() {
 
   if (loading && !data) return _jsx(Loading, { what: t('what_config') })
   if (error && !data) return _jsx(LoadError, { message: error, detail, what: t('what_config'), onRetry: reload })
-  if (!data) return _jsx(Notice, { tone: 'info', children: '没有配置数据。' })
+  if (!data) return _jsx(Notice, { tone: 'info', children: t('config_none') })
 
   return _jsxs(_Fragment, {
     children: [
@@ -142,21 +142,21 @@ export function ConfigPage() {
       _jsxs(Card, {
         style: { display: 'flex', alignItems: 'center', gap: S.x3, flexWrap: 'wrap', marginBottom: S.x1 },
         children: [
-          _jsx('span', { style: { fontSize: F.meta, color: C.text }, children: '账户与行业组配置' }),
-          _jsx(Pill, { tone: 'warn', children: '只读' }),
+          _jsx('span', { style: { fontSize: F.meta, color: C.text }, children: t('config_header') }),
+          _jsx(Pill, { tone: 'warn', children: t('config_readonly') }),
           _jsx('span', {
             style: { fontSize: F.meta, color: C.muted },
-            children: '本期只做展示，改配置仍走 books.yaml / sectors.yaml。',
+            children: t('config_display_only'),
           }),
           _jsx('span', {
             style: { marginLeft: 'auto' },
-            children: _jsx(Ghost, { disabled: true, title: '本期不开放保存', children: '保存（未开放）' }),
+            children: _jsx(Ghost, { disabled: true, title: t('config_save_tip'), children: t('config_save_disabled') }),
           }),
         ],
       }),
-      _jsx(ConfigSection, { title: 'books', hint: '账户与可用额度', value: data.books }),
-      _jsx(ConfigSection, { title: 'sectors', hint: '行业组与覆盖标的', value: data.sectors }),
-      _jsx(ConfigSection, { title: 'constraints', hint: '账户约束', value: data.constraints }),
+      _jsx(ConfigSection, { title: 'books', hint: t('config_hint_books'), value: data.books }),
+      _jsx(ConfigSection, { title: 'sectors', hint: t('config_hint_sectors'), value: data.sectors }),
+      _jsx(ConfigSection, { title: 'constraints', hint: t('config_hint_constraints'), value: data.constraints }),
     ],
   })
 }

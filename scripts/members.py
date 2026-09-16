@@ -69,21 +69,21 @@ _LEAF_INFIX = "-copy-"
 #: id -> [(directory relative to desk root, output label, state noun)].
 #: crews/members.json `output_sources` wins over this whenever it is present.
 FALLBACK_SOURCES: dict[str, list[tuple[str, str, str]]] = {
-    "fund": [("memory/briefs", "汇报", "汇报")],
-    "macro": [("teams/macro/reports", "宏观简报", "宏观简报")],
-    "desk": [("memory/briefs", "CEO 汇报", "给 CEO 的汇报"),
-             ("teams/desk/reports", "全桌汇总", "全桌汇总")],
-    "risk": [("teams/risk-pod/reports", "风控报告", "风控报告")],
+    "fund": [("memory/briefs", "brief", "brief")],
+    "macro": [("teams/macro/reports", "macro brief", "macro brief")],
+    "desk": [("memory/briefs", "CEO brief", "CEO brief"),
+             ("teams/desk/reports", "desk view", "desk view")],
+    "risk": [("teams/risk-pod/reports", "risk review", "risk review")],
     "trader": [],
     "scrum": [],
 }
 
 #: How a member's own daily deliverable reads in state_msg, by member id.
 STATE_NOUNS: dict[str, str] = {
-    "fund": "汇报",
-    "macro": "宏观简报",
-    "desk": "给 CEO 的汇报",
-    "risk": "风控报告",
+    "fund": "brief",
+    "macro": "macro brief",
+    "desk": "CEO brief",
+    "risk": "risk review",
 }
 
 
@@ -192,17 +192,17 @@ def _pod_state(desk_root: Path, pod: str, pod_cfg: dict[str, Any], today: str,
     reports = desk_root / "teams" / pod / "reports"
     delivered_today = [row for row in _dated_reports(reports) if row[0] == today]
     if delivered_today:
-        return "idle", "今天的组报告已交"
+        return "idle", "pod report delivered today"
 
     done, newest = _count_leaves(reports / today)
     if not done:
-        return "idle", "今天还没开工"
+        return "idle", "not started today"
 
     total = _expected_leaves(pod_cfg)
     progress = f"{done}/{total}" if total else str(done)
     if now - newest > stall_secs:
-        return "blocked", f"{progress} 份产出停在 {_hhmm(newest)}，还没出组报告"
-    return "working", f"{progress} 份产出已回，正在往下推"
+        return "blocked", f"{progress} outputs stalled at {_hhmm(newest)}, no pod report yet"
+    return "working", f"{progress} outputs in, rolling up"
 
 
 def _ic_state(desk_root: Path, member: dict[str, Any], pod: str,
@@ -221,7 +221,7 @@ def _ic_state(desk_root: Path, member: dict[str, Any], pod: str,
     globs = member.get("artifact_globs")
     patterns = [str(g) for g in globs if str(g)] if isinstance(globs, list) else []
     if not patterns:
-        return "idle", "尚未开工"
+        return "idle", "not started"
 
     tickers = pod_cfg.get("tickers")
     n_tickers = len(tickers) if isinstance(tickers, list) else 0
@@ -233,7 +233,7 @@ def _ic_state(desk_root: Path, member: dict[str, Any], pod: str,
         each = copies if isinstance(copies, int) and copies > 0 else 1
     total = n_tickers * each
     if total <= 0:
-        return "idle", "本组今天没有标的"
+        return "idle", "no tickers for this pod today"
 
     day_dir = desk_root / "teams" / pod / "reports" / today
     done = 0
@@ -249,10 +249,10 @@ def _ic_state(desk_root: Path, member: dict[str, Any], pod: str,
                         if any(fnmatch(name, p) for p in patterns))
 
     if done >= total:
-        return "idle", f"{done}/{total} 已交"
+        return "idle", f"{done}/{total} delivered"
     if done > 0:
-        return "working", f"{done}/{total} 进行中"
-    return "idle", f"0/{total} 尚未开工"
+        return "working", f"{done}/{total} in progress"
+    return "idle", f"0/{total} not started"
 
 
 def _member_sources(member: dict[str, Any]) -> list[tuple[str, str]]:
@@ -263,14 +263,14 @@ def _member_sources(member: dict[str, Any]) -> list[tuple[str, str]]:
     """
     raw = member.get("output_sources")
     if isinstance(raw, list):
-        given = [(str(entry["dir"]), str(entry.get("label") or "产出"))
+        given = [(str(entry["dir"]), str(entry.get("label") or "output"))
                  for entry in raw
                  if isinstance(entry, dict) and entry.get("dir")]
         if given:
             return given
     pod = member.get("pod")
     if pod:
-        return [(f"teams/{pod}/reports", "组报告")]
+        return [(f"teams/{pod}/reports", "pod report")]
     return [(rel_dir, label)
             for rel_dir, label, _ in FALLBACK_SOURCES.get(str(member.get("id")), [])]
 
@@ -284,7 +284,7 @@ def _standing_state(desk_root: Path, member: dict[str, Any], today: str,
     for rel_dir, _label in sources:
         if any(row[0] == today for row in _dated_reports(desk_root / rel_dir)):
             noun = STATE_NOUNS.get(member_id)
-            return "idle", f"今天的{noun}已交" if noun else "今天的产出已交"
+            return "idle", f"today's {noun} delivered" if noun else "today's output delivered"
 
     if member_id in ("desk", "fund") and pods:
         rolled = 0
@@ -303,22 +303,22 @@ def _standing_state(desk_root: Path, member: dict[str, Any], today: str,
                 newest = max(newest, leaf_newest)
         stalled = newest and (now - newest > stall_secs)
         if rolled:
-            tail = (f"最后一份停在 {_hhmm(newest)}" if stalled
-                    else "正在等其余的")
+            tail = (f"the last one stalled at {_hhmm(newest)}" if stalled
+                    else "waiting on the rest")
             return ("blocked" if stalled else "working",
-                    f"{len(pods)} 个组里 {rolled} 个已交，{tail}")
+                    f"{rolled} of {len(pods)} pods delivered, {tail}")
         if started:
-            tail = (f"最后一份停在 {_hhmm(newest)}" if stalled
-                    else "还没有组报告回来")
+            tail = (f"the last one stalled at {_hhmm(newest)}" if stalled
+                    else "no pod report back yet")
             return ("blocked" if stalled else "working",
-                    f"{started} 个组在跑，{tail}")
+                    f"{started} pods running, {tail}")
 
     noun = STATE_NOUNS.get(member_id)
-    return "idle", f"今天还没交{noun}" if noun else "今天还没有产出"
+    return "idle", f"no {noun} delivered today" if noun else "no output today"
 
 
 def _output_label(base: str, run_date: str, filename: str) -> str:
-    """`宏观简报 2026-08-04`, or `… · macro-risk` when the day has several files."""
+    """`macro brief 2026-08-04`, or `… · macro-risk` when the day has several files."""
     stem = Path(filename).stem
     extra = stem[len(run_date):].lstrip("-_ ")
     return f"{base} {run_date} · {extra}" if extra else f"{base} {run_date}"
@@ -376,7 +376,7 @@ def aggregate_state(desk_root: str | Path | None,
                 tickers = list(raw) if isinstance(raw, list) else []
 
         if is_history:
-            state, state_msg = "idle", f"{today} 是历史记录"
+            state, state_msg = "idle", f"{today} is a historical record"
         elif is_ic and pod:
             state, state_msg = _ic_state(root, member, pod, pod_cfg, today)
         elif pod:

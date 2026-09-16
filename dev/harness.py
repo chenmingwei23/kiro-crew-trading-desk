@@ -192,7 +192,7 @@ def threads_for(member: str) -> dict:
             "id": f"th-{key}",
             "title": detail["title"] or key,
             "state": "running",
-            "state_msg": "进行中",
+            "state_msg": "in progress",
             "slot_key": key,
             "kind": "thread" if detail["agent"] == "tada-fund-manager" else "dispatch",
             "agent": detail["agent"],
@@ -220,7 +220,7 @@ def org_payload() -> dict:
     for m in roster():
         row = dict(m)
         row["state"] = "working" if m["id"] == "fund" else ("done" if m["id"] == "macro" else "idle")
-        row["state_msg"] = {"fund": "正在组织今天的研究", "macro": "今日简报已交"}.get(m["id"], "")
+        row["state_msg"] = {"fund": "organizing today's research", "macro": "today's brief delivered"}.get(m["id"], "")
         row["slot_key"] = fund_key if m["id"] == "fund" else ""
         row["slot_exists"] = bool(row["slot_key"])
         row["outputs"] = [

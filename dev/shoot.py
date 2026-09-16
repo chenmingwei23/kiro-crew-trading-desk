@@ -15,7 +15,7 @@ Selectors are classes and `data-page`, never text: a text selector stops working
 the moment the same control has a second label, which is the whole point of the
 English pass.
 
-    python3 dev/shoot.py                    # 中文, 1440 + one 3440
+    python3 dev/shoot.py                    # Chinese, 1440 + one 3440
     python3 dev/shoot.py --lang en          # English, suffix -en
 """
 from __future__ import annotations

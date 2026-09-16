@@ -70,8 +70,8 @@ export function writeStore(name, value) {
 }
 
 /** Outward-facing wording. No sentinel or orchestration vocabulary. */
-/** Outward-facing wording. 已交 / 卡住 read as desk jargon to a newcomer; 已完成 /
- *  受阻 say the same thing in words anyone uses. */
+/** Outward-facing wording. "delivered" / "stuck" read as desk jargon to a newcomer;
+ *  "done" / "blocked" say the same thing in words anyone uses. */
 export const DELIVERY_WORD = {
   get done() {
     return t('state_done')
@@ -203,7 +203,7 @@ function isAbort(err) {
  * that, and the failure it produced is the reason this function no longer has a
  * fixture argument: one failed read of `/thread/t-x` served
  * `fixtures/thread-detail.json`, so the panel's header showed a fabricated thread
- * ("深挖 example-megacap") while its body -- read from the real `slot_key` the threads
+ * ("deep dive on example-megacap") while its body -- read from the real `slot_key` the threads
  * LIST carried, down a code path with no fixtures -- showed the live conversation.
  * Header and body described two different things and neither said so.
  *
@@ -266,7 +266,7 @@ export async function load(route, valid, signal) {
     failure = String((err && err.message) || err)
   }
   // What reaches the screen is one plain sentence; `detail` carries the technical
-  // reason for the tooltip and the console (§rev9.1: no "数据形状" on screen).
+  // reason for the tooltip and the console (§rev9.1: no "data shape" wording on screen).
   return { error: t('read_failed_hint'), detail: failure, keepData: true }
 }
 
@@ -341,7 +341,7 @@ async function fetchTranscript(key, limit, signal) {
       { headers: { Accept: 'application/json' }, signal },
     )
     if (r.status === 404) return { messages: [], running: false, missing: true }
-    if (!r.ok) return { error: `读不到会话（HTTP ${r.status}）` }
+    if (!r.ok) return { error: t('read_conv_http', { status: r.status }) }
     const data = await r.json()
     return {
       messages: Array.isArray(data && data.messages) ? data.messages : [],
@@ -350,7 +350,7 @@ async function fetchTranscript(key, limit, signal) {
     }
   } catch (err) {
     if (isAbort(err) || (signal && signal.aborted)) return ABORTED
-    return { error: `读不到会话（${String((err && err.message) || err)}）` }
+    return { error: t('read_conv_err', { detail: String((err && err.message) || err) }) }
   }
 }
 
@@ -376,10 +376,10 @@ export async function sendToSlot(key, agent, text) {
     const ct = String(r.headers.get('content-type') || '')
     if (ct.includes('application/json')) {
       const data = await r.json().catch(() => null)
-      if (!r.ok) return { error: (data && data.error) || `发送失败（HTTP ${r.status}）` }
+      if (!r.ok) return { error: (data && data.error) || t('send_failed_http', { status: r.status }) }
       return { queued: !!(data && data.queued) }
     }
-    if (!r.ok) return { error: `发送失败（HTTP ${r.status}）` }
+    if (!r.ok) return { error: t('send_failed_http', { status: r.status }) }
     if (r.body && typeof r.text === 'function') r.text().catch(() => {})
     return { queued: false }
   } catch (err) {
@@ -430,9 +430,9 @@ export async function createThread(memberId, anchor, text) {
     const { ok, status, data } = await postJson('/thread', body)
     const message = (data && data.error) || ''
     if (status === 404 && (!message || message === ROUTE_MISSING_ERROR)) return { missing: true }
-    if (!ok) return { error: message || `开线程失败（HTTP ${status}）` }
+    if (!ok) return { error: message || t('thread_failed_http', { status }) }
     const id = (data && (data.id || (data.thread && data.thread.id))) || ''
-    if (!id) return { error: '开线程失败：返回里没有 thread id' }
+    if (!id) return { error: t('thread_missing_id') }
     return { id }
   } catch (err) {
     if (isAbort(err)) return { error: '' }
@@ -461,7 +461,7 @@ export const threadRouteMissing = () => _threadRouteMissing
  * An accessor pair rather than an exported `let`: rev9 split this file out of the
  * page that sets the flag, and an imported binding is READ-ONLY in an ES module --
  * assigning to it throws "Assignment to constant variable" at the moment the user
- * clicks 开线程, which is the one path this flag exists to make graceful.
+ * clicks the thread action, which is the one path this flag exists to make graceful.
  */
 export function markThreadRouteMissing() {
   _threadRouteMissing = true
@@ -472,8 +472,8 @@ export async function resetMember(id) {
     const { ok, status, data } = await postJson(`/member/${encodeURIComponent(id)}/reset`, {})
     const message = (data && data.error) || ''
     if (status === 404 && (!message || message === ROUTE_MISSING_ERROR)) return { missing: true }
-    if (!ok) return { error: message || `重置失败（HTTP ${status}）` }
-    if (!data || !data.slot_key) return { error: '重置失败：返回里没有 slot_key' }
+    if (!ok) return { error: message || t('reset_failed_http', { status }) }
+    if (!data || !data.slot_key) return { error: t('reset_missing_slot') }
     return { slotKey: data.slot_key }
   } catch (err) {
     return { error: String((err && err.message) || err) }
@@ -683,7 +683,7 @@ export class ChatBoundary extends Component {
       style: { padding: S.x4 },
       children: _jsx(Notice, {
         tone: 'warn',
-        children: `这段对话画不出来了（已记录到控制台）。会话本身没事，可以在主聊天窗口里找 ${this.props.slotKey}`,
+        children: t('render_crash', { slotKey: this.props.slotKey }),
       }),
     })
   }

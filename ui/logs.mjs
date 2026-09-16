@@ -1,7 +1,7 @@
 /** The Logs page — what the desk wrote to disk. */
 
 import { useCallback, useEffect, useState } from 'react'
-import { t } from './i18n.mjs'
+import { phrase, t } from './i18n.mjs'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { load, readFile, uiKit, useLoader, SHAPE } from './data.mjs'
 import { C, Card, F, Ghost, L, LoadError, Loading, MONO, Notice, R, S, StaleBar, labelStyle, sp } from './theme.mjs'
@@ -17,7 +17,7 @@ function DateChips({ dates, value, onChange }) {
 
 function FileTree({ tree, activePath, onPick }) {
   const groups = tree || []
-  if (!groups.length) return _jsx(Notice, { tone: 'info', children: '这一天没有产物。' })
+  if (!groups.length) return _jsx(Notice, { tone: 'info', children: t('logs_no_artifacts') })
   return _jsx('div', {
     style: { display: 'flex', flexDirection: 'column', gap: S.x3 },
     children: groups.map((g) =>
@@ -25,7 +25,7 @@ function FileTree({ tree, activePath, onPick }) {
         children: [
           _jsx('div', {
             style: { ...labelStyle(g.group), marginBottom: S.x1 },
-            children: g.group,
+            children: phrase(g.group),
           }),
           _jsx('div', {
             style: { display: 'flex', flexDirection: 'column', gap: S.half },

@@ -625,7 +625,7 @@ def _thread_object(
     _iso(thread["opened_at"], clause, f"{at}.opened_at")
 
     # rev2: the listing carries the anchor and the count so the UI can render
-    # "🧵 N 条动态 · 最新 hh:mm" without one /thread/{id} call per thread.
+    # "🧵 N updates · latest hh:mm" without one /thread/{id} call per thread.
     assert_anchor(thread["anchor"], where=f"{at}.anchor")
 
     count = _int(thread["entry_count"], clause, f"{at}.entry_count")

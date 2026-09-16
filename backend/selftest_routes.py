@@ -260,14 +260,14 @@ async def main() -> int:
           and not any(s["key"] == first_key for s in state.serialize_slots()),
           f"{fund_after['slot_key']} vs live keys "
           f"{[s['key'] for s in state.serialize_slots()]}")
-    check("a bound-but-uncreated session does not read as 尚未开工",
-          fund_after["state_msg"] != "尚未开工", fund_after["state_msg"])
+    check("a bound-but-uncreated session does not read as not started",
+          fund_after["state_msg"] != "not started", fund_after["state_msg"])
     check("/org reports the new session as not running",
           fund_after["slot_live"] is False and fund_after["state"] == "idle",
           f"{fund_after['slot_live']} / {fund_after['state']}")
     unbound = next(m for m in org_after["members"] if m["slot_key"] is None)
-    check("a member with no session at all still reads 尚未开工",
-          unbound["state_msg"] == "尚未开工", f"{unbound['id']}: {unbound['state_msg']}")
+    check("a member with no session at all still reads not started",
+          unbound["state_msg"] == "not started", f"{unbound['id']}: {unbound['state_msg']}")
     others_before = {m["id"]: m["slot_key"] for m in org_before["members"] if m["id"] != "fund"}
     others_after = {m["id"]: m["slot_key"] for m in org_after["members"] if m["id"] != "fund"}
     check("reset touched no other member's binding", others_before == others_after)
@@ -373,54 +373,54 @@ def _rows(*pairs):
 
 
 UNIVERSE = {
-    CLONE: ("tada-fund-manager", "test-alpha 深挖", True, True, _rows(
-        ("user", "2026-09-14T16:45:00+00:00", "深挖一下 HBM 供给"),
-        ("assistant", "2026-09-14T16:50:00+00:00", "先看三家的产能指引。"),
+    CLONE: ("tada-fund-manager", "test-alpha deep dive", True, True, _rows(
+        ("user", "2026-09-14T16:45:00+00:00", "Dig into HBM supply"),
+        ("assistant", "2026-09-14T16:50:00+00:00", "Start with the three vendors' capacity guidance."),
         ("tool", "2026-09-14T16:51:00+00:00", "🔧 read teams/test-alpha"),
-        ("assistant", "2026-09-14T17:07:41+00:00", "供给端 2027 才松，先按紧平衡定。"),
+        ("assistant", "2026-09-14T17:07:41+00:00", "Supply only loosens in 2027, so assume a tight balance for now."),
     )),
     DISPATCH: ("tada-desk-manager", "desk-manager", False, True, _rows(
-        ("user", "2026-09-14T16:46:00+00:00", "收各组结论"),
-        ("assistant", "2026-09-14T16:58:00+00:00", "9 个组已收齐。"),
+        ("user", "2026-09-14T16:46:00+00:00", "Collect each pod's conclusions"),
+        ("assistant", "2026-09-14T16:58:00+00:00", "All 9 pods are in."),
     )),
-    FOREIGN: ("kirocrew", "随便一个 tab", False, True, _rows(
-        ("user", "2026-09-14T10:00:00+00:00", "帮我看个 PR"),
+    FOREIGN: ("kirocrew", "some random tab", False, True, _rows(
+        ("user", "2026-09-14T10:00:00+00:00", "Take a look at a PR for me"),
     )),
     LM_NAMED: ("tada-line-manager", "line-manager · test-alpha", False, True, _rows(
-        ("assistant", "2026-09-14T17:00:00+00:00", "组报告已交。"),
+        ("assistant", "2026-09-14T17:00:00+00:00", "Pod report delivered."),
     )),
-    LM_VAGUE: ("tada-line-manager", "随手开的", False, True, []),
+    LM_VAGUE: ("tada-line-manager", "opened on a whim", False, True, []),
     FROM_TOOL: ("tada-risk-pod", "risk-pod", False, True, _rows(
-        ("assistant", "2026-09-14T17:20:00+00:00", "复核通过。"),
+        ("assistant", "2026-09-14T17:20:00+00:00", "Review passed."),
     )),
     FROM_LISTING: ("tada-trader", "trader", False, True, _rows(
-        ("assistant", "2026-09-14T17:30:00+00:00", "方案在这。"),
+        ("assistant", "2026-09-14T17:30:00+00:00", "The proposal is here."),
     )),
     # Its transcript proves it existed, but the gateway holds no open slot, so the
     # panel cannot be opened — the one honest use of `failed` in rev6.
     CLOSED: ("tada-scrum-master", "scrum-master", False, False, _rows(
-        ("assistant", "2026-09-14T09:00:00+00:00", "节奏没问题。"),
+        ("assistant", "2026-09-14T09:00:00+00:00", "The rhythm is fine."),
     )),
     # §11.5.2: the two prefixed spellings the store and the API side use.
-    PREFIXED: ("tada-fund-manager", "带冒号前缀的", False, True, _rows(
-        ("assistant", "2026-09-14T17:46:00+00:00", "这条是冒号形。"),
+    PREFIXED: ("tada-fund-manager", "the colon-prefixed one", False, True, _rows(
+        ("assistant", "2026-09-14T17:46:00+00:00", "This one is the colon form."),
     )),
-    UNDERSCORED: ("tada-fund-manager", "带下划线前缀的", False, True, _rows(
-        ("assistant", "2026-09-14T17:51:00+00:00", "这条是下划线形。"),
+    UNDERSCORED: ("tada-fund-manager", "the underscore-prefixed one", False, True, _rows(
+        ("assistant", "2026-09-14T17:51:00+00:00", "This one is the underscore form."),
     )),
-    DUAL: ("tada-desk-manager", "两种形式都提过的", False, True, []),
+    DUAL: ("tada-desk-manager", "mentioned in both forms", False, True, []),
     # rev6.1: opened by a session_create whose output is the only record of the key.
-    CREATED: ("tada-fund-manager", "机制开出来的", False, True, _rows(
-        ("assistant", "2026-09-14T18:05:00+00:00", "这条是 session_create 开的。"),
+    CREATED: ("tada-fund-manager", "opened by the mechanism", False, True, _rows(
+        ("assistant", "2026-09-14T18:05:00+00:00", "This one was opened by session_create."),
     )),
     # A desk session that a chat_folder_tree output happens to LIST. It passes the
     # agent test, so only not reading that output keeps it out.
     LISTED_DESK: ("tada-trader", "trader", False, True, []),
     # The denied create's key: this session was never opened, so nothing knows it.
-    DENIED: ("tada-fund-manager", "被拒的", False, True, []),
+    DENIED: ("tada-fund-manager", "the denied one", False, True, []),
     # Named in the opening row, before any user message exists to anchor it.
-    ORPHAN: ("tada-fund-manager", "接手时就在跑的", False, True, _rows(
-        ("assistant", "2026-09-14T15:00:00+00:00", "昨晚的活还没收口。"),
+    ORPHAN: ("tada-fund-manager", "already running when I took over", False, True, _rows(
+        ("assistant", "2026-09-14T15:00:00+00:00", "Last night's work isn't wrapped up yet."),
     )),
     # Quoted in a seed brief as "send here if you need risk". A real risk-pod
     # session, so the agent gate passes and only the field rule keeps it out.
@@ -439,70 +439,70 @@ MAIN_DAY = [
     # ---- before the first user message: a resumed conversation's opening line.
     # ---- §13.2's fallback is the only thing that can anchor a key named here.
     {"role": "assistant", "ts": "2026-09-14T16:30:00+00:00", "meta": {"mid": "m-preamble"},
-     "content": f"接着昨晚：`{ORPHAN}` 还在跑。"},
+     "content": f"Picking up from last night: `{ORPHAN}` is still running."},
 
     # ---- TURN A: one request, FOUR threads. §13.2 rule 3 — two topics two lines,
     # ---- so several threads may share one user message, one bar each.
     {"role": "user", "ts": "2026-09-14T16:40:00+00:00", "meta": {"mid": "m-ceo-instruction"},
-     "content": "研究 test-alpha 组，重点看 HBM 供给"},
+     "content": "Research the test-alpha pod, focus on HBM supply"},
     {"role": "assistant", "ts": "2026-09-14T16:44:00+00:00", "meta": {"mid": "m-receipt-one"},
-     "content": f"已开 thread `{CLONE}` 深挖，另派 desk-manager `{DISPATCH}`，过程都在 thread 里。"
-                f"顺手提一句我自己那条 `{MAIN}`，还有个不相干的 tab `{FOREIGN}`。"},
+     "content": f"Opened thread `{CLONE}` to dig in, and dispatched desk-manager `{DISPATCH}`; the steps are all in the thread. "
+                f"For the record, that's my own one `{MAIN}`, plus an unrelated tab `{FOREIGN}`."},
     {"role": "assistant", "ts": "2026-09-14T16:59:00+00:00", "meta": {"mid": "m-receipt-two"},
-     "content": f"test-alpha 组那条是 `{LM_NAMED}`，另有一条我随手开的 `{LM_VAGUE}`。"},
+     "content": f"The test-alpha pod one is `{LM_NAMED}`, and there's another I opened on a whim `{LM_VAGUE}`."},
 
     # ---- TURN B: names the SAME clone a third time, plus a tool-sourced key. The
     # ---- repeat must not mint a second anchor, and must not move the first one.
     {"role": "user", "ts": "2026-09-14T17:10:00+00:00", "meta": {"mid": "m-ceo-risk"},
-     "content": "让风控也过一遍"},
+     "content": "Have risk run through it too"},
     {"role": "assistant", "ts": "2026-09-14T17:15:00+00:00", "meta": {"mid": "m-before-tool"},
-     "content": f"让风控复核一遍，深挖那条还是 `{CLONE}`。"},
+     "content": f"Sending it for a risk review; the deep-dive one is still `{CLONE}`."},
     {"role": "tool", "ts": "2026-09-14T17:16:00+00:00", "meta": {
         "mid": "m-tool-send",
         "input": json.dumps({
             # The real shape of a seed: an addressee in `target`, and a body that
             # quotes OTHER sessions as routing advice. §13.2 reads `target` alone.
             "target": FROM_TOOL,
-            "message": "复核 test-alpha。必要时 session_send 进 risk-pod 常驻 session"
-                       f"（`{QUOTED_IN_SEED}`）。",
+            "message": "Review test-alpha. If needed, session_send into the risk-pod standing session"
+                       f" (`{QUOTED_IN_SEED}`).",
         }),
         "output": f"🗂️ Sidebar folder tree — 131 live sessions:\n  · {FROM_LISTING}  trader\n",
     }, "content": "🔧 Running: session_send"},
     {"role": "nudge", "ts": "2026-09-14T17:17:00+00:00", "meta": {"mid": "m-nudge"},
-     "content": f"[auto-nudge cycle 3] 顺便看看 `{CLOSED}`"},
+     "content": f"[auto-nudge cycle 3] while you're at it, check `{CLOSED}`"},
     {"role": "assistant", "ts": "2026-09-14T17:40:00+00:00", "meta": {"mid": "m-receipt-three"},
-     "content": f"scrum 那条 `{CLOSED}` 早上就开过。"},
+     "content": f"The scrum one `{CLOSED}` was already opened this morning."},
 
     # ---- TURN C / TURN D: §11.5.2's two prefixed spellings, one per turn so each
     # ---- still anchors on its own. DUAL is named prefixed in C and bare in D: one
     # ---- thread, anchored where it was FIRST seen, which is C's request.
     {"role": "user", "ts": "2026-09-14T17:44:00+00:00", "meta": {"mid": "m-ceo-store"},
-     "content": "store 里那两条是什么"},
+     "content": "What are those two in the store"},
     {"role": "assistant", "ts": "2026-09-14T17:45:00+00:00", "meta": {"mid": "m-prefixed"},
-     "content": f"store 里那条是 `dashboard:{PREFIXED}`，另外 `dashboard:{DUAL}` 也开了。"},
+     "content": f"The one in the store is `dashboard:{PREFIXED}`, and `dashboard:{DUAL}` is open too."},
     {"role": "user", "ts": "2026-09-14T17:49:00+00:00", "meta": {"mid": "m-ceo-fold"},
-     "content": "transcript 落在哪"},
+     "content": "Where does the transcript land"},
     {"role": "assistant", "ts": "2026-09-14T17:50:00+00:00", "meta": {"mid": "m-underscored"},
-     "content": f"transcript 落在 dashboard_{UNDERSCORED}。顺带 `{DUAL}` 就是上面那条。"},
+     "content": f"The transcript lands at dashboard_{UNDERSCORED}. And `{DUAL}` is the one above."},
 
     # ---- TURN E — rev6.1: the mechanism is the trigger. These rows carry the REAL
     # ---- content lines and meta shapes, verified against 28 session_create rows
     # ---- and 11 chat_folder_tree rows in the live transcripts.
     {"role": "user", "ts": "2026-09-14T17:59:00+00:00", "meta": {"mid": "m-ceo-create"},
-     "content": "这条你自己开个 thread 深挖"},
+     "content": "Open your own thread and dig into this one"},
     {"role": "assistant", "ts": "2026-09-14T18:00:00+00:00", "meta": {"mid": "m-before-create"},
-     "content": "我开个 thread 深挖这条。"},
+     "content": "I'll open a thread to dig into this one."},
     {"role": "tool", "ts": "2026-09-14T18:01:00+00:00", "meta": {
         "mid": "m-create-ran", "kind": "unknown",
-        "input": json.dumps({"agent": "tada-fund-manager", "title": "机制开出来的"}),
-        "output": f"🆕 Opened `{CREATED}` (机制开出来的). It is empty and waiting in the "
+        "input": json.dumps({"agent": "tada-fund-manager", "title": "opened by the mechanism"}),
+        "output": f"🆕 Opened `{CREATED}` (opened by the mechanism). It is empty and waiting in the "
                   "user's sidebar; watch it with session_read_message.",
     }, "content": "🔧 Running: @kirocrew-dashboard/session_create"},
     # The user denied it, so nothing was created — 🚫 instead of 🔧.
     {"role": "tool", "ts": "2026-09-14T18:02:00+00:00", "meta": {
         "mid": "m-create-denied", "kind": "unknown",
-        "input": json.dumps({"agent": "tada-fund-manager", "title": "被拒的"}),
-        "output": f"🆕 Opened `{DENIED}` (被拒的).",
+        "input": json.dumps({"agent": "tada-fund-manager", "title": "the denied one"}),
+        "output": f"🆕 Opened `{DENIED}` (the denied one).",
     }, "content": "🚫 Running: @kirocrew-dashboard/session_create"},
     # The trap this exception has to stay narrow enough to avoid: same meta.kind as
     # a session_create row, and its output lists a session on a real desk agent.
@@ -515,12 +515,12 @@ MAIN_DAY = [
 
     # ---- TURN F: the request itself has NO mid, so there is nothing addressable to
     # ---- hang the thread on and it must downgrade rather than ship a bad id.
-    {"role": "user", "ts": "2026-09-15T01:59:00+00:00", "content": "再开一条看看"},
+    {"role": "user", "ts": "2026-09-15T01:59:00+00:00", "content": "Open another one and take a look"},
     {"role": "assistant", "ts": "2026-09-15T02:00:00+00:00", "meta": {"mid": "m-receipt-four"},
-     "content": "另开一条 `chat-7009-1700000009`。"},
+     "content": "Opened another one `chat-7009-1700000009`."},
 ]
 
-UNIVERSE["chat-7009-1700000009"] = ("tada-fund-manager", "无 mid 的", False, True, [])
+UNIVERSE["chat-7009-1700000009"] = ("tada-fund-manager", "no mid", False, True, [])
 
 #: Every request row's mid, read off the fixture rather than restated, so a row
 #: added to MAIN_DAY cannot make "the anchor is a user row" pass by omission.
@@ -749,7 +749,7 @@ async def check_threads(routes, ctx, config_file, app, state, dispatch, body_of)
         check("anchor ts is NOT reformatted (it is the UI's row key)",
               clone_anchor["ts"] == "2026-09-14T16:40:00+00:00", repr(clone_anchor["ts"]))
         check("anchor preview is the reader's own words, not the manager's narration",
-              clone_anchor["preview"].startswith("研究 test-alpha"),
+              clone_anchor["preview"].startswith("Research the test-alpha"),
               repr(clone_anchor["preview"]))
         check("anchor preview is scrubbed of every key shape",
               not transcript.has_key_shape(clone_anchor["preview"]),
@@ -833,7 +833,7 @@ async def check_threads(routes, ctx, config_file, app, state, dispatch, body_of)
               by_key[LM_VAGUE]["entry_count"] == 0 and by_key[LM_VAGUE]["last_ts"] is None,
               f"{by_key[LM_VAGUE]['entry_count']} / {by_key[LM_VAGUE]['last_ts']!r}")
         check("last_msg quotes the thread's newest line",
-              by_key[CLONE]["last_msg"].startswith("供给端 2027"), by_key[CLONE]["last_msg"])
+              by_key[CLONE]["last_msg"].startswith("Supply only loosens in 2027"), by_key[CLONE]["last_msg"])
         check("no thread ships an empty last_msg",
               all(t["last_msg"] for t in found),
               str([t["id"] for t in found if not t["last_msg"]]))
@@ -867,7 +867,7 @@ async def check_threads(routes, ctx, config_file, app, state, dispatch, body_of)
 
         thread_state.delivered.clear()
         resp = await dispatch("POST", f"thread/{by_key[CLONE]['id']}/say",
-                              body={"text": "再问一轮 macro"})
+                              body={"text": "Ask macro one more round"})
         said = await body_of(resp)
         check("/say 200 with {ok, delivered_to, slot_key}",
               resp.status == 200 and said.get("ok") is True
@@ -877,17 +877,17 @@ async def check_threads(routes, ctx, config_file, app, state, dispatch, body_of)
               thread_state.delivered and thread_state.delivered[-1][0] == CLONE,
               str(thread_state.delivered[-1:]))
         check("/say actually put the text on that session",
-              thread_state.delivered and thread_state.delivered[-1][1] == "再问一轮 macro",
+              thread_state.delivered and thread_state.delivered[-1][1] == "Ask macro one more round",
               str(thread_state.delivered[-1:]))
         resp = await dispatch("POST", f"thread/{by_key[CLOSED]['id']}/say",
-                              body={"text": "还在吗"})
+                              body={"text": "Still there?"})
         check("/say into a session the gateway dropped → 409, not a silent success",
               resp.status == 409, f"{resp.status} {await body_of(resp)}")
 
         # ---- a dispatch to a member whose agent is shared and unattributed still
         # ---- has somewhere to go: the thread's owner names it.
         resp = await dispatch("POST", f"thread/{by_key[LM_VAGUE]['id']}/say",
-                              body={"text": "在干什么"})
+                              body={"text": "What are you working on?"})
         said = await body_of(resp)
         check("/say on an unattributed thread names the thread's owner",
               resp.status == 200 and said.get("delivered_to") == "fund",
@@ -917,9 +917,9 @@ NEW_SECOND = "chat-8202-1700003002"
 #: The member's own conversation, with one message the user can pick.
 MAIN_712 = [
     {"role": "user", "ts": "2026-09-14T11:00:00+00:00", "meta": {"mid": "m-712-pick"},
-     "content": "HBM 供给这条我想单独拉一条线好好聊，别混在主对话里，另外顺带看一下 test-alpha"},
+     "content": "I want a separate line for the HBM supply topic, kept out of the main conversation, and also take a look at test-alpha"},
     {"role": "assistant", "ts": "2026-09-14T11:01:00+00:00", "meta": {"mid": "m-712-reply"},
-     "content": "明白。"},
+     "content": "Got it."},
 ]
 
 
@@ -1097,11 +1097,11 @@ async def check_thread_create(ctx, config_file, app, dispatch, body_of) -> None:
         # ---- /say reaches it
         state.delivered.clear()
         said = await body_of(
-            await dispatch("POST", f"thread/{made['id']}/say", body={"text": "先说 HBM"})
+            await dispatch("POST", f"thread/{made['id']}/say", body={"text": "HBM first"})
         )
         check("/say reaches the thread just created",
               said.get("ok") is True and said.get("slot_key") == NEW_THREAD
-              and state.delivered[-1] == (NEW_THREAD, "先说 HBM"),
+              and state.delivered[-1] == (NEW_THREAD, "HBM first"),
               f"{json.dumps(said, ensure_ascii=False)} / {state.delivered[-1:]}")
         detail = await body_of(await dispatch("GET", f"thread/{made['id']}"))
         check("/thread/{id} opens it and agrees with the listing",
@@ -1122,14 +1122,14 @@ async def check_thread_create(ctx, config_file, app, dispatch, body_of) -> None:
         other = {"mid": "m-712-reply", "ts": "2026-09-14T11:01:00+00:00"}
         second = await body_of(
             await dispatch("POST", "thread",
-                           body={"member_id": "fund", "anchor": other, "title": "第二条"})
+                           body={"member_id": "fund", "anchor": other, "title": "second one"})
         )
         check("another message opens a second, distinct thread",
               second.get("slot_key") == NEW_SECOND and second.get("created") is True
               and second["id"] != made["id"],
               json.dumps(second, ensure_ascii=False))
         check("a caller-supplied title is used verbatim",
-              state.opened[-1]["title"] == "第二条", state.opened[-1]["title"])
+              state.opened[-1]["title"] == "second one", state.opened[-1]["title"])
         check("the threads folder is reused, not created a second time",
               state.folders_made == ["Trading Desk/threads"], str(state.folders_made))
         both = await body_of(await dispatch("GET", "threads?member=fund"))
@@ -1269,23 +1269,23 @@ OLD_MAIN = "td-fund-1700001008"     # a reset-minted MAIN conversation, misfiled
 
 #: The threads-folder world: ``key -> (folder_id, agent, title, running, open)``.
 FILED = {
-    OWN: ("g-td-th", "tada-fund-manager", "reset 之前开的那条", False, True),
-    MACRO_CLONE: ("g-td-th", "tada-macro-strategist", "macro 自己的", True, True),
-    NO_AGENT: ("g-td-th", "", "读不出 agent 的", False, True),
-    BOTH: ("g-td-th", "tada-fund-manager", "两个来源都有的", False, True),
+    OWN: ("g-td-th", "tada-fund-manager", "the one opened before the reset", False, True),
+    MACRO_CLONE: ("g-td-th", "tada-macro-strategist", "macro's own", True, True),
+    NO_AGENT: ("g-td-th", "", "agent unreadable", False, True),
+    BOTH: ("g-td-th", "tada-fund-manager", "in both sources", False, True),
     DESK_TO_LM: ("g-desk-th", "tada-line-manager", "line-manager · test-alpha", False, True),
-    POD_OWN: ("g-pod-th", "tada-line-manager", "组自己开的", False, True),
-    GONE: ("g-td-th", "tada-fund-manager", "session 已经不在了", False, False),
-    OLD_MAIN: ("g-td-th", "tada-fund-manager", "reset 前的主对话", False, True),
+    POD_OWN: ("g-pod-th", "tada-line-manager", "opened by the pod itself", False, True),
+    GONE: ("g-td-th", "tada-fund-manager", "session is already gone", False, False),
+    OLD_MAIN: ("g-td-th", "tada-fund-manager", "main conversation before the reset", False, True),
 }
 
 #: A main conversation that names exactly one of the filed sessions, so the merge
 #: has something to dedupe and the anchored/unanchored pair can be compared.
 MAIN_611 = [
     {"role": "user", "ts": "2026-09-14T10:00:00+00:00", "meta": {"mid": "m-611-ask"},
-     "content": "这条值得单开一个 thread"},
+     "content": "This one is worth opening a thread for"},
     {"role": "assistant", "ts": "2026-09-14T10:01:00+00:00", "meta": {"mid": "m-611-receipt"},
-     "content": f"已开 thread `{BOTH}`，过程都在里面。"},
+     "content": f"Opened thread `{BOTH}`; the steps are all inside it."},
 ]
 
 
@@ -1493,7 +1493,7 @@ async def check_threads_folder(ctx, config_file, app, dispatch, body_of) -> None
               detail.get("slot_key") == OWN and detail.get("anchor") is None,
               json.dumps(detail, ensure_ascii=False)[:120])
         app["state"].delivered.clear()
-        said = await dispatch("POST", f"thread/{only}/say", body={"text": "继续"})
+        said = await dispatch("POST", f"thread/{only}/say", body={"text": "continue"})
         check("/say into a folder-only thread lands on its own session",
               said.status == 200 and app["state"].delivered
               and app["state"].delivered[-1][0] == OWN,
@@ -1507,7 +1507,7 @@ async def check_threads_folder(ctx, config_file, app, dispatch, body_of) -> None
             def read_messages_chained(self, key):
                 self.asked.append(key)
                 return [{"role": "user", "ts": "2026-09-14T09:31:00+00:00",
-                         "content": "从 gateway 的 log 读到的"}]
+                         "content": "read from the gateway's log"}]
 
             def get_metadata(self, key):
                 self.asked.append(key)
@@ -1518,7 +1518,7 @@ async def check_threads_folder(ctx, config_file, app, dispatch, body_of) -> None
         gw = type("Gw", (), {"conversation_log": log, "get_slot": staticmethod(lambda _k: None)})()
         rows = transcript.read(gw, OWN)
         check("transcript.read goes through the state's OWN conversation log",
-              rows and rows[0]["content"] == "从 gateway 的 log 读到的"
+              rows and rows[0]["content"] == "read from the gateway's log"
               and f"dashboard:{OWN}" in log.asked,
               f"{rows} / {log.asked}")
         check("transcript.session_meta goes through it too",
@@ -1558,8 +1558,8 @@ async def check_threads_folder(ctx, config_file, app, dispatch, body_of) -> None
 REV8_MAIN = "td-fund-1789450893"
 REV8_CLONE = "chat-9301-1700004001"
 #: macro's and risk-pod's own resident sessions. The 09-15 seed briefs quote them as
-#: routing advice inside a ``session_send`` body ("necessary 时 send 进 risk-pod 常驻
-#: session"), and reading that body published both as fund-manager's threads.
+#: routing advice inside a ``session_send`` body ("if needed, send into the risk-pod
+#: standing session"), and reading that body published both as fund-manager's threads.
 REV8_PHANTOMS = ("chat-9303-1700004003", "chat-9304-1700004004")
 
 

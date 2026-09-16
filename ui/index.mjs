@@ -59,7 +59,7 @@ function TabBar({ page, onPage }) {
 }
 
 function SourceBadge({ source }) {
-  // There is no 样例数据 state any more: the runtime never renders a fixture, so a
+  // There is no sample-data state any more: the runtime never renders a fixture, so a
   // badge for it would be a promise the app cannot keep (§rev7 P0).
   if (source === 'live') return _jsx(Pill, { tone: 'ok', children: t('live') })
   return null

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
-import { t as say } from './i18n.mjs'
+import { phrase, t as say } from './i18n.mjs'
 import { SHAPE, ChatBoundary, clampPanel, readShell, writeShell, asQuote, countSent, createThread, load, markThreadRouteMissing, postJson, resolveSlotKey, sendToSlot, threadRouteMissing, useLoader, useQuote, useSession, useTranscript } from './data.mjs'
 import { BAR_STACK, BODY_TEXT, COLUMN, CONVO_ROLE, ChatHead, Composer, DayDivider, FOLD_LINE, FOLD_WORD, FoldedBody, FollowUps, GUTTER_STYLE, MdBody, QUIET_PX, QuietLine, ROW_GUTTER, ROW_PAD, RowActions, STAMP_PX, SlackRow, WalkFold, chatItems, followUpsFor, keysNamed, receiptShape, parseChatOptions, quietText, rowTime, rowTimeTitle, senderMember, stripEnvelope, walkSteps } from './parts.mjs'
 import { Avatar, C, Card, Dot, F, Ghost, L, LoadError, Loading, MONO, Notice, Pill, R, S, SHADOW, StaleBar, W, agentFor, findMember, hair, memberKind, memberLetter, sp } from './theme.mjs'
@@ -36,10 +36,10 @@ function TdChat({ member, agent, members, threads, threadFor, openThreadId, onOp
       },
       children: _jsxs('div', {
         children: [
-          _jsx('div', { style: { color: C.text, fontSize: F.quiet, marginBottom: S.x1 }, children: '该成员尚未开工' }),
+          _jsx('div', { style: { color: C.text, fontSize: F.quiet, marginBottom: S.x1 }, children: say('chat_empty_title') }),
           _jsx('div', {
             style: { color: C.muted, fontSize: F.meta },
-            children: `${member.name} 还没有会话，等它接到第一次任务后这里就能对话。`,
+            children: say('chat_empty_body', { name: member.name }),
           }),
         ],
       }),
@@ -153,7 +153,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
       if (res && res.missing) {
         // The route is absent from this build. Say it once here; every row's
         // tooltip carries the explanation from now on.
-        setThreadError('这个 gateway 的 backend 还没有 POST /thread，开线程要等它上线')
+        setThreadError(say('thread_route_note'))
         return
       }
       if (res && res.error) {
@@ -181,7 +181,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
    * row that anchors it wins and any later anchor for the same session is dropped
    * rather than drawn again, so a backend that hands back two anchors for one
    * thread still reads as one thread. And only a VISIBLE row can carry a bar: a
-   * paragraph folded into 过程 is not a place a reader can see, so a thread anchored
+   * paragraph folded into the steps fold is not a place a reader can see, so a thread anchored
    * there stays unplaced and reaches them through the header entry instead.
    */
   const bars = useMemo(() => {
@@ -399,7 +399,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
         _jsx('div', {
           style: GUTTER_STYLE,
           children: _jsx(QuietLine, {
-            text: `这一步在等批准：${quietText(it.msg)}\n批准要到主聊天窗口（这里没有审批按钮）`,
+            text: say('perm_await', { msg: quietText(it.msg) }),
             tone: 'warn',
           }),
         }, key),
@@ -408,7 +408,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
     }
     if (it.kind === 'queued') {
       rows.push(
-        _jsx('div', { style: GUTTER_STYLE, children: _jsx(QuietLine, { text: `排队中：${quietText(it.msg)}` }) }, key),
+        _jsx('div', { style: GUTTER_STYLE, children: _jsx(QuietLine, { text: say('queued_line', { msg: quietText(it.msg) }) }) }, key),
       )
       return
     }
@@ -430,7 +430,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
             style: { opacity: 0.6 },
             children: [
               _jsx(MdBody, { text: p.text }, 'b'),
-              _jsx('div', { style: { fontSize: QUIET_PX, color: C.muted }, children: '发送中…' }, 's'),
+              _jsx('div', { style: { fontSize: QUIET_PX, color: C.muted }, children: say('sending') }, 's'),
             ],
           }),
         },
@@ -443,7 +443,7 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
     rows.push(
       _jsx('div', {
         style: { color: C.muted, fontSize: QUIET_PX, padding: sp(S.x2, ROW_PAD + ROW_GUTTER) },
-        children: t.loaded ? '还没有消息，说第一句话就开始了。' : '正在读会话…',
+        children: t.loaded ? say('transcript_empty') : say('reading_session'),
       }, 'empty'),
     )
   }
@@ -545,7 +545,7 @@ function RailRow({ member, selected, onSelect }) {
   return _jsxs('button', {
     className: 'td-rail-row',
     onClick: () => onSelect(member.id),
-    title: member.state_msg || member.title || member.name,
+    title: phrase(member.state_msg) || member.title || member.name,
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -747,7 +747,7 @@ export function ChatPage({ org, orgAt, selectedId, onProfile, onOpenMember, onSe
   )
   const threads = useLoader(threadsLoader, [selectedId], 20000)
 
-  if (!base) return _jsx(Notice, { tone: 'info', children: '还没有成员数据。' })
+  if (!base) return _jsx(Notice, { tone: 'info', children: say('no_members') })
 
   const slotKey = resolveSlotKey(base, rememberedSlots, orgAt)
   const member = slotKey === base.slot_key ? base : { ...base, slot_key: slotKey }
@@ -914,7 +914,7 @@ export function ChatPage({ org, orgAt, selectedId, onProfile, onOpenMember, onSe
               onProfile: onOpenMember,
               onOpenFile,
                   onFollowUp: (t) => {
-                    setFollowUp(`接着「${t.title}」继续：`)
+                    setFollowUp(say('followup_prefix', { title: t.title }))
                     setOpenThread({ member: '', id: '' })
                   },
                 }, openId),
@@ -941,7 +941,7 @@ function FollowUpHint({ text, onDismiss }) {
       background: C.accentSubtle,
     },
     children: [
-      _jsx('span', { style: { fontSize: F.meta, color: C.muted, flexShrink: 0 }, children: '下一件工作，说给它听：' }),
+      _jsx('span', { style: { fontSize: F.meta, color: C.muted, flexShrink: 0 }, children: say('followup_label') }),
       _jsx('input', {
         readOnly: true,
         value: text,
@@ -958,7 +958,7 @@ function FollowUpHint({ text, onDismiss }) {
           fontFamily: 'inherit',
         },
       }),
-      _jsx(Ghost, { onClick: onDismiss, children: '收起' }),
+      _jsx(Ghost, { onClick: onDismiss, children: say('dismiss') }),
     ],
   })
 }
@@ -966,10 +966,10 @@ function FollowUpHint({ text, onDismiss }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 8b. Threads (M2)
 //
-// "说话就是主对话，干活就开线程" — the main conversation stays the user's
-// conversation with one crew member; the work happens in threads. This layer is
-// the ONLY process view: nothing here is copied into the main transcript, and a
-// thread's own entries are reached by opening it, never by restating them.
+// The main conversation stays the user's conversation with one crew member; the
+// work happens in threads. This layer is the ONLY process view: nothing here is
+// copied into the main transcript, and a thread's own entries are reached by
+// opening it, never by restating them.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const THREAD_STATE_TONE = { running: 'accent', done: 'ok', failed: 'danger' }
@@ -983,10 +983,10 @@ function threadStateWord(state) {
 }
 
 const ENTRY_KIND = {
-  dispatch: { label: '派工', tone: 'accent' },
-  report: { label: '汇报', tone: 'ok' },
-  steer: { label: '插话', tone: 'warn' },
-  close: { label: '完成', tone: 'ok' },
+  dispatch: { label: () => say('entry_dispatch'), tone: 'accent' },
+  report: { label: () => say('entry_report'), tone: 'ok' },
+  steer: { label: () => say('entry_steer'), tone: 'warn' },
+  close: { label: () => say('entry_done'), tone: 'ok' },
 }
 
 function memberName(members, id) {
@@ -999,7 +999,7 @@ function memberName(members, id) {
 async function sayInThread(id, text) {
   try {
     const { ok, status, data } = await postJson(`/thread/${encodeURIComponent(id)}/say`, { text })
-    if (!ok) return { error: (data && data.error) || `发送失败（HTTP ${status}）` }
+    if (!ok) return { error: (data && data.error) || say('send_failed_http', { status }) }
     return { deliveredTo: (data && data.delivered_to) || '' }
   } catch (err) {
     return { error: String((err && err.message) || err) }
@@ -1007,7 +1007,7 @@ async function sayInThread(id, text) {
 }
 
 /**
- * The user takes part in threads too — their 插话 is an entry — but the CEO is not
+ * The user takes part in threads too — their steer is an entry — but the CEO is not
  * a member: CONTRACT §2 keeps them out of the roster, so there is no name to look
  * up and no profile to open.
  */
@@ -1020,14 +1020,14 @@ const CEO_ACTOR = 'ceo'
  */
 function ActorName({ id, members, onProfile }) {
   if (id === CEO_ACTOR) {
-    return _jsx('span', { style: { color: C.text, fontSize: F.meta }, children: '你' })
+    return _jsx('span', { style: { color: C.text, fontSize: F.meta }, children: say('you') })
   }
   if (!findMember(members, id)) {
     return _jsx('span', { style: { color: C.muted, fontSize: F.meta }, children: String(id || '') })
   }
   return _jsx('button', {
     onClick: () => onProfile(id),
-    title: `看 ${memberName(members, id)} 的 profile`,
+    title: say('profile_tooltip', { who: memberName(members, id) }),
     style: {
       background: 'none',
       border: 'none',
@@ -1082,7 +1082,7 @@ function threadsForMessage(threads, msg) {
  * for.
  *
  * Not "threads with no anchor": an anchor whose row is outside the loaded window,
- * whose `ts` no longer matches, or whose paragraph folded into 过程 (§13.1), leaves a
+ * whose `ts` no longer matches, or whose paragraph folded into the steps fold (§13.1), leaves a
  * thread that is anchored on paper and unreachable on screen. So the set is computed
  * from what actually got a bar — `shownKeys` comes back from the transcript, which is
  * the only place that knows — and it is keyed on the SESSION, or a thread deduped out
@@ -1209,7 +1209,7 @@ function ThreadMarker({ thread, members, active, onOpen }) {
       _jsx('span', {
         className: 'td-reply-hint',
         style: { fontSize: F.quiet, color: C.muted, whiteSpace: 'nowrap' },
-        // Not 查看线程: that is what the bar says when the payload carries no
+        // Not the "View thread" wording: that is what the bar says when the payload carries no
         // count, and two different states must not read identically.
         children: say('reply_open'),
       }),
@@ -1233,8 +1233,8 @@ function UnanchoredThreads({ threads, openId, onOpen }) {
       _jsx(Ghost, {
         onClick: () => setOpen(!open),
         active: open,
-        title: '没能挂到具体某句话的线程',
-        children: `进行中的工作 ${list.length}`,
+        title: say('unanchored_title'),
+        children: say('work_in_progress', { n: list.length }),
       }),
       open
         ? _jsx('div', {
@@ -1307,7 +1307,7 @@ function refLabel(path) {
 }
 
 function EntryRow({ entry, members, onProfile, onOpenFile }) {
-  const kind = ENTRY_KIND[entry.kind] || { label: entry.kind, tone: 'quiet' }
+  const kind = ENTRY_KIND[entry.kind] || { label: () => entry.kind, tone: 'quiet' }
   return _jsxs('div', {
     style: {
       display: 'flex',
@@ -1322,7 +1322,7 @@ function EntryRow({ entry, members, onProfile, onOpenFile }) {
         children: [
           _jsx('span', { style: { color: C.muted, fontSize: F.micro, fontFamily: MONO }, children: entry.ts }),
           _jsx(ActorName, { id: entry.actor, members, onProfile }),
-          _jsx(Pill, { tone: kind.tone, children: kind.label }),
+          _jsx(Pill, { tone: kind.tone, children: kind.label() }),
         ],
       }),
       _jsx('div', {
@@ -1368,7 +1368,7 @@ function ThreadSay({ threadId, members, onSaid }) {
       return
     }
     const who = res.deliveredTo ? memberName(members, res.deliveredTo) : ''
-    setUi({ text: '', busy: false, error: '', note: who ? `已送到 ${who}` : '已送出' })
+    setUi({ text: '', busy: false, error: '', note: who ? say('sent_to', { who }) : say('sent') })
     onSaid()
   }
 
@@ -1406,7 +1406,7 @@ function ThreadSay({ threadId, members, onSaid }) {
               lineHeight: 1.5,
             },
           }),
-          _jsx(Ghost, { onClick: send, disabled: ui.busy || !ui.text.trim(), children: ui.busy ? '发送中…' : '发送' }),
+          _jsx(Ghost, { onClick: send, disabled: ui.busy || !ui.text.trim(), children: ui.busy ? say('sending') : say('send') }),
         ],
       }),
     ],
@@ -1423,9 +1423,9 @@ function ThreadDone({ thread, onFollowUp }) {
   return _jsxs('div', {
     style: { borderTop: hair(C.border), padding: sp(S.x2, '0', '0'), display: 'flex', flexDirection: 'column', gap: S.x2 },
     children: [
-      _jsx('span', { style: { fontSize: F.meta, color: C.muted }, children: '这件工作已完成。' }),
+      _jsx('span', { style: { fontSize: F.meta, color: C.muted }, children: say('thread_finished') }),
       _jsx('div', {
-        children: _jsx(Ghost, { onClick: () => onFollowUp(thread), children: '追加后续工作' }),
+        children: _jsx(Ghost, { onClick: () => onFollowUp(thread), children: say('add_followup') }),
       }),
     ],
   })
@@ -1440,9 +1440,9 @@ function ThreadDone({ thread, onFollowUp }) {
  * still moving the anchor source to key-mention, and a thread built the old way
  * still has to open.
  *
- * `kind` labels it 分身 or 派工; `member` and `agent` say whose voice the rows are
- * in, which for a clone is the conductor's own (§11.1 — same agent) and for a
- * dispatch is the subordinate's. All four are optional and each degrades to
+ * `kind` labels it a clone or a dispatch; `member` and `agent` say whose voice the
+ * rows are in, which for a clone is the conductor's own (§11.1 — same agent) and for
+ * a dispatch is the subordinate's. All four are optional and each degrades to
  * something true rather than to a guess.
  *
  * The spellings are the BACKEND's, read off its own emitter rather than chosen
@@ -1451,10 +1451,15 @@ function ThreadDone({ thread, onFollowUp }) {
  * accepted too — a one-line map costs nothing and this app's fixtures were written
  * before that emitter landed — but the backend's name is the authoritative one.
  */
-const THREAD_KIND_WORD = { thread: '分身', clone: '分身', dispatch: '派工' }
+const THREAD_KIND_WORD = {
+  thread: () => say('thread_kind_clone'),
+  clone: () => say('thread_kind_clone'),
+  dispatch: () => say('thread_kind_dispatch'),
+}
 
 function threadKindWord(thread) {
-  return (thread && THREAD_KIND_WORD[thread.kind]) || ''
+  const fn = thread && THREAD_KIND_WORD[thread.kind]
+  return fn ? fn() : ''
 }
 
 function threadFace(thread, members, member) {
@@ -1554,7 +1559,7 @@ function ThreadDrawer({ threadId, thread, note, member, agent, members, onClose,
     // rev6 §11.2 detail shape: metadata + slot_key, NO entries (the panel renders
     // the clone session's live transcript itself). entries stays accepted for the
     // dispatch-thread fallback timeline. Requiring entries alone is what rejected
-    // every §11.2 response as "返回的数据形状不对".
+    // every §11.2 response as "the response shape is wrong".
     (signal) => load(`/thread/${encodeURIComponent(threadId)}`, SHAPE.thread, signal),
     [threadId],
   )
@@ -1601,7 +1606,7 @@ function ThreadDrawer({ threadId, thread, note, member, agent, members, onClose,
               style: { padding: sp(S.x3, '0'), borderBottom: hair(C.border), minWidth: 0 },
               children: [
                 // Slack quotes the message a thread hangs off rather than labelling
-                // it. The label used to say 这条消息开出的线程 above the text, which
+                // it. The label used to say "the thread opened from this message" above the text, which
                 // spent a line restating what the quote's own shape says — and it
                 // was hardcoded Chinese, so an English reader got it in Chinese
                 // directly above an English one from `receipt_note`.

@@ -56,18 +56,18 @@ KINDS = ("dispatched", "stage", "delivered", "failed", "note")
 #: Pipeline stages inside one pod, in run order.
 #: (stage name, filename globs, per-ticker count or None = 4 roles x analyst_copies)
 STAGES: tuple[tuple[str, tuple[str, ...], int | None], ...] = (
-    ("分析", ("technicals-copy-*.md", "fundamentals-copy-*.md",
+    ("Analysis", ("technicals-copy-*.md", "fundamentals-copy-*.md",
               "sentiment-copy-*.md", "news-copy-*.md"), None),
-    ("多空", ("bull-thesis.md", "bear-thesis.md"), 2),
-    ("提案", ("trade-proposal-initial.md",), 1),
-    ("风控", ("risk-aggressive.md", "risk-conservative.md", "risk-neutral.md"), 3),
+    ("Debate", ("bull-thesis.md", "bear-thesis.md"), 2),
+    ("Proposal", ("trade-proposal-initial.md",), 1),
+    ("Risk", ("risk-aggressive.md", "risk-conservative.md", "risk-neutral.md"), 3),
 )
 
 #: Non-pod members that own a reports/ directory, and how their delivery reads.
 STANDING_MEMBERS: tuple[tuple[str, str, str], ...] = (
-    ("macro", "teams/macro/reports", "宏观简报已交"),
-    ("desk", "teams/desk/reports", "全桌汇总已交"),
-    ("risk", "teams/risk-pod/reports", "风控报告已交"),
+    ("macro", "teams/macro/reports", "macro brief delivered"),
+    ("desk", "teams/desk/reports", "desk view delivered"),
+    ("risk", "teams/risk-pod/reports", "risk review delivered"),
 )
 
 
@@ -173,7 +173,7 @@ def derive_pod_events(desk_root: Path, run_date: str, pod: str,
     if all_mtimes:
         events.append(_event(
             run_date, pod, "dispatched",
-            f"开工，{n_tickers} 只票分下去了" if n_tickers else "开工",
+            f"dispatched, {n_tickers} tickers assigned" if n_tickers else "dispatched",
             _iso(min(all_mtimes))))
 
     for name, _, _ in STAGES:
@@ -183,17 +183,17 @@ def derive_pod_events(desk_root: Path, run_date: str, pod: str,
         done = len(times)
         total = _stage_total(name, n_tickers, copies) or done
         events.append(_event(
-            run_date, pod, "stage", f"{name} {done}/{total} 份已回",
+            run_date, pod, "stage", f"{name} {done}/{total} back",
             _iso(max(times)),
             stage={"name": name, "done": done, "total": total}))
 
     rollups = _dated_files(reports_dir, run_date)
     if rollups:
-        events.append(_event(run_date, pod, "delivered", "组报告已交",
+        events.append(_event(run_date, pod, "delivered", "pod report delivered",
                              _iso(max(p.stat().st_mtime for p in rollups))))
     elif all_mtimes and is_past:
         # Settled fact only for a finished day: work landed, no pod report did.
-        events.append(_event(run_date, pod, "note", "当天没有出组报告",
+        events.append(_event(run_date, pod, "note", "no pod report that day",
                              _iso(max(all_mtimes))))
     return events
 
@@ -218,7 +218,7 @@ def derive_events(desk_root: Path, run_date: str,
 
     briefs = _dated_files(desk_root / "memory" / "briefs", run_date)
     if briefs:
-        events.append(_event(run_date, "desk", "delivered", "CEO 汇报已写好",
+        events.append(_event(run_date, "desk", "delivered", "CEO brief written",
                              _iso(max(p.stat().st_mtime for p in briefs))))
 
     events.sort(key=lambda e: (e["at"], e["who"], e["kind"], e["msg"]))
@@ -366,7 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
                "  desk_events.py derive --date 2026-09-07\n"
                "  desk_events.py derive --date 2026-09-07 --write --quiet\n"
                "  desk_events.py append --run-date 2026-09-07 --who example-megacap "
-               "--kind delivered --msg '组报告已交'\n")
+               "--kind delivered --msg 'pod report delivered'\n")
     sub = parser.add_subparsers(dest="command", required=True)
 
     root_help = ("desk data root (default: $TRADING_DESK_ROOT, else "
@@ -389,7 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="member id or pod name")
     append.add_argument("--kind", required=True, choices=KINDS)
     append.add_argument("--msg", required=True, help="one plain-language line")
-    append.add_argument("--stage-name", help="stage label, e.g. 分析")
+    append.add_argument("--stage-name", help="stage label, e.g. Analysis")
     append.add_argument("--stage-done", type=int, help="stage items finished")
     append.add_argument("--stage-total", type=int, help="stage items expected")
     append.add_argument("--at", help="ISO timestamp (default: now)")

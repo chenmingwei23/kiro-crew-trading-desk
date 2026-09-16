@@ -28,9 +28,9 @@ and `sectors.yaml`, shows a diff of what a change would write, and runs your own
 validator against the proposed version in a sandbox. A config that fails is never
 written.
 
-**A daily run view.** The four-stage chain — research, debate, proposal, risk
-review — with per-pod progress derived from artifacts on disk, so it is honest even
-when nothing emitted an event.
+**A daily run view.** The four-stage chain — analysis, debate, proposal, risk — with
+per-pod progress derived from artifacts on disk, so it is honest even when nothing
+emitted an event.
 
 ## Two directories, and why
 
@@ -103,6 +103,23 @@ proposal, and three risk reviewers — aggressive, conservative and neutral — 
 over the proposal.
 
 See `crews/README.md` for the field-by-field contract.
+
+## Language
+
+The app ships in English and Chinese, and opens in English unless your browser asks
+for Chinese. There is a switch in the header either way, and your choice is
+remembered.
+
+English is canonical in the source: the backend, the scripts and the comments are
+English, and Chinese lives in one file, `ui/i18n.mjs`, as two tables. To add a
+language, copy a table — nothing outside that file needs to know. To change a word a
+reader sees, edit it there rather than at the place it is produced.
+
+What a crew member writes is never translated. A brief, a debate, a regime call and
+a proposal are shown exactly as the agent wrote them, in whatever language it wrote
+them in, because a switch cannot translate an argument without putting words in
+someone's mouth. `tests/test_i18n.py` holds that rule and the rest of the contract as
+assertions.
 
 ## Tests
 

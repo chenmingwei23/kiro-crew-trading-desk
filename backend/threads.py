@@ -36,7 +36,7 @@ becomes unreachable inside the app while the clone sessions are all still alive
 in ``<member folder>/threads``. So that folder is read too, and the two are
 merged on ``slot_key`` with the conversation winning — its copy is the one that
 carries an anchor. A folder-only thread has ``anchor: null``: no reply bar under
-any row, but it still reaches the user through the header's 「进行中的工作」 entry
+any row, but it still reaches the user through the header's "Work in progress" entry
 (§11.6.2). The agent gate is looser on that side, deliberately — being filed in
 the folder IS the declaration, whereas a key in prose is just text.
 
@@ -171,7 +171,7 @@ def _session_facts(gw: Any, key: str, view: SlotView) -> dict[str, Any]:
 
 
 def _visible_rows(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The rows a human counts as 动态 — what was said, not how it was done."""
+    """The rows a human counts as updates — what was said, not how it was done."""
     return [m for m in messages if str(m.get("role") or "") in _SCANNED_ROLES]
 
 
@@ -239,13 +239,13 @@ def _mentions(
 
     Three places a key is read from, and the asymmetry between them is the point:
 
-    * a **visible row**'s own text — the conductor's "已开 thread" reply, or the CEO
+    * a **visible row**'s own text — the conductor's "opened thread" reply, or the CEO
       naming a key (§11.1: the key rides in the reply);
     * a **tool call's INPUT** — what the conductor deliberately addressed, e.g. the
       ``session_send`` it drove a subordinate with. For a tool that takes an
       addressee beside a free-text body, only the addressing field is read
-      (``ADDRESSED_INPUT_FIELDS``): a seed brief quoting "necessary 时 send 进
-      risk-pod 的常驻 session" names a session the manager TALKED ABOUT, and reading
+      (``ADDRESSED_INPUT_FIELDS``): a seed brief quoting "when necessary send into
+      risk-pod's standing session" names a session the manager TALKED ABOUT, and reading
       the body minted two such quotes as the manager's own threads on the real
       09-15 conversation (§13.2);
     * a **session-creating tool's OUTPUT**, and no other tool's. rev6.1 made the
@@ -263,7 +263,7 @@ def _mentions(
 
     **One anchor per thread.** A key is recorded the first time it is seen and
     never again, so however many times one manager turn names the same session —
-    the create's output, the "Thread 已开" line, the send's input, the closing
+    the create's output, the "Thread opened" line, the send's input, the closing
     receipt: five mentions of one key on the real 09-15 conversation — that thread
     hangs in exactly one place.
 
@@ -273,7 +273,7 @@ def _mentions(
     the nearest visible row is the fallback for a turn no user message started (a
     cron-driven run, or a window that no longer holds the request). This is Slack's
     own meaning of a thread, and it is also what survives §13.1: intermediate prose
-    folds into 过程, and a bar anchored there would have no visible row to sit on.
+    folds into steps, and a bar anchored there would have no visible row to sit on.
 
     A tool-sourced key never hangs on the tool row itself under either rule: TdChat
     draws one as a collapsed line, and a reply bar under something the reader cannot
@@ -360,7 +360,7 @@ def _build(
     rows = _visible_rows(transcript.read(gw, key))
     stamps = [m.get("ts") for m in rows if m.get("ts")]
     participants = [member_id] + ([worker] if worker and worker != member_id else [])
-    title = facts["title"] or ("新 thread" if kind == "thread" else f"派工 · {worker or '未定'}")
+    title = facts["title"] or ("new thread" if kind == "thread" else f"dispatch · {worker or 'TBD'}")
     state = _state_of(facts)
 
     return {
@@ -379,7 +379,7 @@ def _build(
         "participants": participants,
         "last_msg": _last_line(
             rows,
-            "刚开好，还没说话" if state != "failed" else "这个 session 已经不在了",
+            "just opened, nothing said yet" if state != "failed" else "this session is gone",
         ),
         # §11.2: the reply bar hangs under this message. None when the row has no
         # mid for the UI to resolve — and None for a thread found in the threads
@@ -389,7 +389,7 @@ def _build(
         # recorded at creation (§12), which is the one case a folder-sourced thread
         # does have a row to hang under.
         "anchor": _anchor_of(mention) if mention is not None else _recorded_anchor(recorded),
-        # What the reply bar renders ("🧵 N 条动态 · 最新 hh:mm"). rev6 source: the
+        # What the reply bar renders ("🧵 N updates · latest hh:mm"). rev6 source: the
         # thread session's own rows, so the number is the panel's own length.
         "entry_count": len(rows),
         "last_ts": stamps[-1] if stamps else None,

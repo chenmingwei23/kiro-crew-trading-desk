@@ -1,16 +1,16 @@
 """Fold a work session's transcript down to a thread's boundary messages.
 
-A thread view is NOT a transcript copy (CONTRACT §8.2: "不搬全文"). Only three
+A thread view is NOT a transcript copy (CONTRACT §8.2: "do not copy the full text"). Only three
 kinds of line cross into it:
 
-* **派工语** — a manager driving a subordinate. ``session_control`` prefixes such a
+* **dispatch** — a manager driving a subordinate. ``session_control`` prefixes such a
   delivery with ``[sent by session <key> via session_send]``, which is how a
   dispatch is told apart from a human typing; the crews track will additionally
   land a ``DISPATCHED →`` prefix (§8.4) and that is honoured here already.
 * **sentinel** — a tier's completion line (``POD DONE`` and friends). It closes the
   thread when it is the thread's own worker reporting, and is a report when it is
   a lower tier reporting up.
-* **用户插话** — any other message from the human.
+* **steer** — any other message from the human.
 
 Two hard rules. The provenance prefix carries a SESSION KEY, so it is stripped
 before the text is ever returned — the UI must never see one (§8.2). And the
@@ -95,7 +95,7 @@ _RAN = ("🔧", "✅")
 #:
 #: ``session_send`` takes an addressee in ``target`` and a free-text ``message``
 #: beside it, and a seed brief routinely quotes other sessions as instructions
-#: ("necessary 时 session_send 进 risk-pod 常驻 session ``chat-…``"). Those are
+#: ("when necessary session_send into risk-pod's standing session ``chat-…``"). Those are
 #: things the manager TALKED ABOUT, not things it addressed, and scanning the body
 #: minted them as the manager's own threads: two phantoms on the real 09-15 fund
 #: conversation, which is half of what made one request read as three threads.
@@ -375,7 +375,7 @@ def fold(
         if name is None:
             continue
         owner = SENTINELS.get(name)
-        text = scrub(raw) or _CLOSING_WORDS.get(name, "这一步完成了")
+        text = scrub(raw) or _CLOSING_WORDS.get(name, "this step is done")
         entries.append(
             {
                 "ts": at,
@@ -390,13 +390,13 @@ def fold(
     return entries
 
 
-#: 人话 stand-ins for a sentinel-only message, so an entry is never empty.
+#: Plain-language stand-ins for a sentinel-only message, so an entry is never empty.
 _CLOSING_WORDS = {
-    "POD DONE": "组报告已交",
-    "CEO BRIEF WRITTEN": "全桌汇总已交",
-    "MACRO BRIEF WRITTEN": "宏观简报已交",
-    "RISK REPORT WRITTEN": "风控复核已交",
-    "FUND PLAN DONE": "本轮派工收口",
+    "POD DONE": "pod report delivered",
+    "CEO BRIEF WRITTEN": "desk view delivered",
+    "MACRO BRIEF WRITTEN": "macro brief delivered",
+    "RISK REPORT WRITTEN": "risk review delivered",
+    "FUND PLAN DONE": "this round's dispatch is wrapped up",
 }
 
 

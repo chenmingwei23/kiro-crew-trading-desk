@@ -248,16 +248,16 @@ A profile key that is not a member id in the same payload is a fault.
       "id": "fund",
       "name": "fund-manager",
       "title": "Fund Manager",
-      "duty": "统筹整张 desk 的日常运转，对最终结论负责。",
+      "duty": "Runs the desk's day-to-day operations, breaking the day's intent into research and allocation actions, and owns the final conclusion.",
       "parent": null,
       "group": null,
       "pod": null,
       "tickers": [],
       "state": "idle",
-      "state_msg": "在位待命",
+      "state_msg": "on station",
       "slot_key": "dashboard_chat-9305-1700004005",
       "recent_outputs": [
-        { "label": "昨日汇报 2026-09-07", "path": "memory/briefs/2026-09-07.md" }
+        { "label": "Yesterday's brief 2026-09-07", "path": "memory/briefs/2026-09-07.md" }
       ]
     },
     {
@@ -270,7 +270,7 @@ A profile key that is not a member id in the same payload is a fault.
       "pod": "example-megacap",
       "tickers": ["AAPL", "MSFT"],
       "state": "working",
-      "state_msg": "正在处理今天的活",
+      "state_msg": "working on today's tasks",
       "slot_key": null,
       "recent_outputs": []
     },
@@ -278,13 +278,13 @@ A profile key that is not a member id in the same payload is a fault.
       "id": "ic-example-megacap-technicals",
       "name": "technicals · example-megacap",
       "title": "Technicals Analyst",
-      "duty": "对本组标的做技术面分析。",
+      "duty": "Runs technical analysis on this pod's tickers.",
       "parent": "lm-example-megacap",
       "group": "Book A · example-megacap",
       "pod": "example-megacap",
       "tickers": [],
       "state": "idle",
-      "state_msg": "2/2 已交",
+      "state_msg": "2/2 delivered",
       "slot_key": null,
       "recent_outputs": []
     }
@@ -334,24 +334,24 @@ string or null.
   "date": "2026-09-07",
   "live": false,
   "chain": [
-    { "member": "fund", "steps": [ { "label": "开盘布置", "state": "done", "at": "09:05" } ] }
+    { "member": "fund", "steps": [ { "label": "opening brief", "state": "done", "at": "09:05" } ] }
   ],
   "pods": [
     {
       "pod": "example-megacap",
       "state": "done",
       "stages": [
-        { "name": "分析", "done": 8, "total": 8 },
-        { "name": "多空", "done": 4, "total": 4 },
-        { "name": "提案", "done": 2, "total": 2 },
-        { "name": "风控", "done": 6, "total": 6 }
+        { "name": "Analysis", "done": 8, "total": 8 },
+        { "name": "Debate", "done": 4, "total": 4 },
+        { "name": "Proposal", "done": 2, "total": 2 },
+        { "name": "Risk", "done": 6, "total": 6 }
       ],
       "delivered_at": "15:40",
       "fail_reason": null
     }
   ],
   "events": [
-    { "at": "09:05", "who": "fund", "msg": "布置今天的研究", "hot": false }
+    { "at": "09:05", "who": "fund", "msg": "set out today's research", "hot": false }
   ]
 }
 ```
@@ -447,7 +447,7 @@ containment rules as `recent_outputs`).
     {
       "group": "example-megacap",
       "files": [
-        { "label": "组报告", "path": "teams/example-megacap/reports/2026-09-07.md" }
+        { "label": "pod report", "path": "teams/example-megacap/reports/2026-09-07.md" }
       ]
     }
   ]
@@ -889,7 +889,7 @@ thread is unusable without both. `slot_key` is the **bare** `chat-<n>-<ts>` form
 session into two threads.
 
 `entry_count` counts the session's visible rows (what the reply chip renders as
-"🧵 N 条动态 · 最新 hh:mm"); `last_ts` is the latest row that *has* a timestamp. Rows
+"🧵 N updates · latest hh:mm"); `last_ts` is the latest row that *has* a timestamp. Rows
 without one give a count with no stamp, which degrades the chip's clock rather than
 contradicting the count. With no rows there is nothing to report, so `entry_count` is
 0 and `last_ts` is null.
@@ -908,7 +908,7 @@ equals the number of threads — one session is one thread (§11.5.2).
       "state": "done",
       "opened_at": "2026-09-07T10:12:00",
       "participants": ["fund"],
-      "last_msg": "已经把结论写回主对话",
+      "last_msg": "Wrote the conclusion back to the main conversation",
       "anchor": {
         "main_msg": "mid-8842",
         "ts": "2026-09-07T10:11:40",
@@ -967,7 +967,7 @@ live and archived sessions filed there. The agent gate here is deliberately loos
 than S1's: being filed in the folder is itself the declaration that this is that
 member's thread, so a session whose agent cannot be resolved is still listed rather
 than dropped. A folder-only thread has `anchor: null` — no reply bar under a row, but
-it still reaches the user through the header's 「进行中的工作」 entry (**§11.6.2**).
+it still reaches the user through the header's "In progress" entry (**§11.6.2**).
 
 The merge is on `slot_key` with S1's copy — the one with the anchor — winning. That is
 what survives a `/member/{id}/reset`: the new main conversation mentions nothing, so
@@ -1014,7 +1014,7 @@ reader sees.
 
 **§13.2 — one anchor, on the message that asked.** A key is recorded the first time it
 is seen and never again, so however many times one manager turn names the same session
-— the create's output, the "Thread 已开" line, the send's input, the closing receipt —
+— the create's output, the "Thread opened" line, the send's input, the closing receipt —
 that thread hangs in exactly one place. And it hangs on the **user message that asked**
 for the work, not on the manager's narration of carrying it out: a thread belongs to
 the sentence the reader typed. When a tool call carries an addressee beside a
@@ -1023,11 +1023,68 @@ another session's key does not mint a thread on it.
 
 ---
 
+## §14 Internationalization
+
+English is the canonical language of this codebase. Every string the app itself
+authors is written in English at its source: the backend routes (§2) and the scripts
+track (§6) emit English, and so do code comments and docstrings. No Python file
+authors a non-English display string. The example payloads throughout this document
+are the English the code actually produces.
+
+Chinese is a translation layer that lives in exactly one file,
+[`ui/i18n.mjs`](../ui/i18n.mjs), and nowhere else. That file holds two tables. UI
+chrome — labels the app writes itself, like the "In progress" header entry (§11.6.2)
+— is translated through a `t()` lookup. The backend's finished phrases are translated
+through a `phrase()` map keyed on the English the backend now writes: a `state_msg`
+like `not started` (§2, `GET /org`), an output label like `pod report`, a stage name
+like `Analysis` (§11, the four pod stages `Analysis` / `Debate` / `Proposal` /
+`Risk`). Where the backend glues a value onto a phrase, `phrase()` looks up the phrase
+around the value and keeps the value: a leading count (`2/2 delivered`), a trailing
+count (`Analysis 6/8`), a trailing date (`macro brief 2026-09-14`), and a value in the
+middle (`the last one stalled at 14:52`). A slot holding another of our phrases is
+translated one level down, so `4 of 9 pods delivered, waiting on the rest` comes back
+whole rather than half.
+
+The middle-of-sentence match is the one with a sharp edge, because a table entry
+becomes a pattern and a pattern can match something it was not written for. Two things
+hold it in: the pattern describes the WHOLE message, and an entry needs a floor of its
+own literal words before it is compiled at all. Without the floor, a short entry such
+as the group label's `{pod} pod` would compile to "anything ending in ` pod`" and
+rewrite the tail of a sentence someone dictated. The two entries below that floor are
+matched by shape instead, and the `group` field — whose shape genuinely is a pod name
+with `pod` on the end — gets `groupLabel()`, a transform named for the FIELD rather
+than guessing from text.
+
+Text a crew member wrote is never translated. A brief, a regime call, a thread title,
+an event `msg` typed by an agent is shown exactly as written; `phrase()` returns an
+unknown string unchanged, and that pass-through is load-bearing rather than a fallback.
+The same rule runs the other way in [`ui/parts.mjs`](../ui/parts.mjs): the receipt
+patterns there match the Chinese a Chinese-speaking crew member writes, so Chinese
+appears in that file as a PATTERN on purpose. A Chinese *string* anywhere outside the
+tables is the defect; a Chinese *pattern* that reads someone else's words is not.
+
+The app opens in English. A saved preference wins; failing that it switches to Chinese
+only when the browser asks for it, so a reader with an English locale never sees the
+translation layer at all. A key missing from the Chinese table falls back to English
+rather than rendering as its own name — right on screen, and the reason the parity
+check compares the two tables to each other instead of calling `t()`.
+
+[`tests/test_i18n.py`](../tests/test_i18n.py) holds the whole contract as assertions:
+no Chinese string or comment outside the tables, the two tables at key parity, every
+key the UI asks for present in both, every backend phrase carrying a Chinese reading,
+crew text surviving both languages byte for byte, and the opening language. Each
+assertion was confirmed to fail when the thing it guards is broken. Because
+Chinese exists only in `ui/i18n.mjs`, the contract in §2 and the shapes in
+[`tests/schema.py`](../tests/schema.py) are stated once, in English, and the UI is the
+only place a second language is added.
+
+---
+
 ## Coverage
 
 Every section number cited by the code resolves here: §0, §1, §2, §3, §4, §5, §6, §7,
 §8 (§8.1, §8.2), §9 (§9.1), §10 (§10.1, §10.2), §11 (§11.1, §11.2, §11.5 with §11.5.2
-and §11.5.3, §11.6 with §11.6.1–§11.6.4), §12, and §13 (§13.1, §13.2). Payload shapes
+and §11.5.3, §11.6 with §11.6.1–§11.6.4), §12, §13 (§13.1, §13.2), and §14. Payload shapes
 are stated as [`tests/schema.py`](../tests/schema.py) enforces them; where the code
 guarantees less than a full shape — `POST /config/apply`'s success payload, `GET /health`,
 `POST /member/{id}/reset` — this document says only what the code guarantees.

@@ -9,7 +9,7 @@ Data comes from the best source available, in this order:
    the Run page still renders before the scripts track lands.
 
 Which one answered is reported as ``source`` so the page never has to guess.
-Wording is outward-facing: 已交 / 进行中 / 卡住, never a protocol sentinel.
+Wording is outward-facing: delivered / in progress / stuck, never a protocol sentinel.
 """
 from __future__ import annotations
 
@@ -32,10 +32,10 @@ _DERIVE_TIMEOUT = 25.0
 _CHAIN_ORDER = ("fund", "macro", "desk", "risk", "trader", "scrum")
 
 _KIND_LABELS = {
-    "dispatched": "已下派",
-    "delivered": "已交",
-    "failed": "卡住",
-    "note": "进展",
+    "dispatched": "dispatched",
+    "delivered": "delivered",
+    "failed": "stuck",
+    "note": "progress",
 }
 
 
@@ -175,7 +175,7 @@ def _fold(root: Path, date: str, events: list[dict[str, Any]], source: str) -> d
                 lane["delivered_at"] = at
             elif kind == "failed":
                 lane["state"] = "fail"
-                lane["fail_reason"] = msg or "未说明原因"
+                lane["fail_reason"] = msg or "no reason given"
 
         if member:
             steps = chain.setdefault(member, [])
@@ -184,7 +184,7 @@ def _fold(root: Path, date: str, events: list[dict[str, Any]], source: str) -> d
                 stage = event["stage"]
                 done = int(stage.get("done") or 0)
                 total = int(stage.get("total") or 0)
-                label = f"{stage.get('name') or '进展'} {done}/{total}"
+                label = f"{stage.get('name') or 'progress'} {done}/{total}"
                 state = "done" if total and done >= total else "work"
             elif kind == "failed":
                 state = "fail"
@@ -253,7 +253,7 @@ def _synth_lane(root: Path, pod: str, date: str, live: bool) -> dict[str, Any]:
         return {
             "pod": pod,
             "state": "done",
-            "stages": lane_stages + [{"name": "组报告", "done": 1, "total": 1}],
+            "stages": lane_stages + [{"name": "pod report", "done": 1, "total": 1}],
             "delivered_at": deskdata.mtime_hhmm(rollup),
             "fail_reason": None,
         }
@@ -262,7 +262,7 @@ def _synth_lane(root: Path, pod: str, date: str, live: bool) -> dict[str, Any]:
         "state": "work" if live else "fail",
         "stages": lane_stages,
         "delivered_at": None,
-        "fail_reason": None if live else "组报告未落盘",
+        "fail_reason": None if live else "pod report not written",
     }
 
 
@@ -291,16 +291,16 @@ def _synthesize(root: Path, date: str) -> dict[str, Any]:
             "member": "fund",
             "steps": [
                 {
-                    "label": "开工",
+                    "label": "started",
                     "state": "done" if dispatched else ("work" if live else "todo"),
                     "at": None,
                 },
-                _synth_step("收到汇报", brief, live),
+                _synth_step("brief received", brief, live),
             ],
         }
     ]
     if macro is not None or live:
-        chain.append({"member": "macro", "steps": [_synth_step("宏观简报", macro, live)]})
+        chain.append({"member": "macro", "steps": [_synth_step("macro brief", macro, live)]})
     for lane in active:
         pod = lane["pod"]
         steps = [
@@ -310,32 +310,32 @@ def _synthesize(root: Path, date: str) -> dict[str, Any]:
                 "at": None,
             }
             for s in lane["stages"]
-            if s["name"] != "组报告"
+            if s["name"] != "pod report"
         ]
         steps.append(
             {
-                "label": "组报告",
+                "label": "pod report",
                 "state": "done" if lane["state"] == "done" else ("work" if live else "fail"),
                 "at": lane["delivered_at"],
             }
         )
         chain.append({"member": f"lm-{pod}", "steps": steps})
     if risk is not None:
-        chain.append({"member": "risk", "steps": [_synth_step("风控复核", risk, live)]})
+        chain.append({"member": "risk", "steps": [_synth_step("risk review", risk, live)]})
     if desk is not None or brief is not None:
-        chain.append({"member": "desk", "steps": [_synth_step("桌面观点", desk or brief, live)]})
+        chain.append({"member": "desk", "steps": [_synth_step("desk view", desk or brief, live)]})
 
     stream: list[dict[str, Any]] = []
     for lane in active:
         if lane["delivered_at"]:
             stream.append(
-                {"at": lane["delivered_at"], "who": lane["pod"], "msg": "组报告已交", "hot": True}
+                {"at": lane["delivered_at"], "who": lane["pod"], "msg": "pod report delivered", "hot": True}
             )
         elif lane["state"] == "fail":
             stream.append(
-                {"at": None, "who": lane["pod"], "msg": "组报告未落盘", "hot": True}
+                {"at": None, "who": lane["pod"], "msg": "pod report not written", "hot": True}
             )
-    for label, path in (("宏观简报已交", macro), ("风控复核已交", risk), ("桌面观点已交", desk)):
+    for label, path in (("macro brief delivered", macro), ("risk review delivered", risk), ("desk view delivered", desk)):
         if path is not None:
             stream.append(
                 {"at": deskdata.mtime_hhmm(path), "who": "desk", "msg": label, "hot": False}
@@ -345,7 +345,7 @@ def _synthesize(root: Path, date: str) -> dict[str, Any]:
             {
                 "at": deskdata.mtime_hhmm(brief),
                 "who": "fund",
-                "msg": f"汇报已送达（{rel(root, brief)}）",
+                "msg": f"brief delivered ({rel(root, brief)})",
                 "hot": True,
             }
         )

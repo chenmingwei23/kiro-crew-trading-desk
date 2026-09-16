@@ -1,7 +1,7 @@
 /** The Desk page — the member directory (§14.1: this mode does not change). */
 
 import { useMemo, useState } from 'react'
-import { memberTitle, phrase, t } from './i18n.mjs'
+import { groupLabel, memberTitle, phrase, t } from './i18n.mjs'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { Avatar, C, Card, Dot, F, Ghost, L, Notice, R, S, Sect, findMember, hair, labelStyle, memberKind, memberLetter, orgRows, rule, sp } from './theme.mjs'
 
@@ -60,7 +60,7 @@ function HeroMain({ member, reportCount, reportsTo, onChat }) {
       _jsx('div', { style: { color: C.accent, marginTop: S.half, fontSize: F.quiet }, children: member.title || '' }),
       _jsx('div', {
         style: { color: C.muted, fontSize: F.meta, marginTop: S.half },
-        children: member.group || reportsTo || 'Trading Desk',
+        children: groupLabel(member.group) || reportsTo || 'Trading Desk',
       }),
       _jsxs('div', {
         style: {
@@ -78,7 +78,7 @@ function HeroMain({ member, reportCount, reportsTo, onChat }) {
           }),
           _jsx(KvRow, { k: t('direct_reports'), v: reportCount ? String(reportCount) : '—' }),
           member.tickers && member.tickers.length
-            ? _jsx(KvRow, { k: '覆盖标的', v: member.tickers.join(' ') })
+            ? _jsx(KvRow, { k: t('desk_tickers'), v: member.tickers.join(' ') })
             : null,
         ],
       }),
@@ -92,7 +92,7 @@ function HeroMain({ member, reportCount, reportsTo, onChat }) {
           paddingLeft: S.x3,
           maxWidth: L.quote,
         },
-        children: member.duty || '',
+        children: phrase(member.duty) || '',
       }),
       _jsx('div', {
         style: { marginTop: S.x4 },
@@ -167,16 +167,11 @@ function OrgRow({ member, depth, hasChildren, collapsed, childCount, selected, o
   // reading is mapped in i18n, so a raw read here prints English rows to a
   // Chinese reader and ignores the language switch.
   const lead = isIc ? memberTitle(member) || member.name : member.name
-  // The roster's group label carries no language-specific word -- the suffix is
-  // appended here from the language map, so an English reader never gets a
-  // Chinese noun glued to a Latin pod name. The strip handles a roster written
-  // before that rule, which ended the label with the word itself.
-  const sub = isIc
-    ? ''
-    : member.group
-      ? `${String(member.group).replace(/\s*(组|pod)$/i, '')} ${t('pod_suffix')}`
-      : member.title || ''
-  // Just the count. `state_msg` is the backend's one-line Chinese, and ten
+  // The roster's group label carries no language-specific word. `groupLabel`
+  // carries the pod-suffix rule for both this row and the hero card, so the
+  // transform lives in one place next to the tables.
+  const sub = isIc ? '' : member.group ? groupLabel(member.group) : member.title || ''
+  // Just the count. `state_msg` is the backend's one-line summary, and ten
   // identical copies of it down one pod said less than the digits do.
   const progress = isIc ? (String(member.state_msg || '').match(/\d+\s*\/\s*\d+/) || [''])[0] : ''
   return _jsxs('div', {

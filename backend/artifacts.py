@@ -18,9 +18,9 @@ from .paths import rel, resolve_in_root
 
 #: Rollup label per non-pod team.
 _TEAM_LABELS = {
-    "macro": "宏观简报",
-    "risk-pod": "风控复核",
-    "desk": "桌面观点",
+    "macro": "macro brief",
+    "risk-pod": "risk review",
+    "desk": "desk view",
 }
 
 _MAX_FILE_BYTES = 2_000_000
@@ -61,11 +61,11 @@ def _group_order(root: Path) -> list[tuple[str, str]]:
     """``(team, rollup_label)`` in reading order."""
     order: list[tuple[str, str]] = [("macro", _TEAM_LABELS["macro"])]
     pods = deskdata.pods(root)
-    order += [(pod, "组报告") for pod in pods]
+    order += [(pod, "pod report") for pod in pods]
     order += [("risk-pod", _TEAM_LABELS["risk-pod"]), ("desk", _TEAM_LABELS["desk"])]
     # Any team directory the config does not mention still shows its output.
     known = {name for name, _ in order}
-    order += [(team, "组报告") for team in deskdata.teams_present(root) if team not in known]
+    order += [(team, "pod report") for team in deskdata.teams_present(root) if team not in known]
     return order
 
 
@@ -87,7 +87,7 @@ def build(root: Path, date: str | None) -> dict[str, Any]:
     if briefs:
         tree.append(
             {
-                "group": "CEO 汇报",
+                "group": "CEO brief",
                 "files": [
                     _entry(root, path, "brief" if path.name == f"{target}.md" else _variant_label("brief", path.name))
                     for path in briefs
@@ -102,7 +102,7 @@ def build(root: Path, date: str | None) -> dict[str, Any]:
 
     events = deskdata.events_path(root, target)
     if events.is_file():
-        tree.append({"group": "运行事件", "files": [_entry(root, events, "events.jsonl")]})
+        tree.append({"group": "run events", "files": [_entry(root, events, "events.jsonl")]})
 
     return {"dates": dates, "date": target, "tree": tree, "deskRoot": str(root)}
 
