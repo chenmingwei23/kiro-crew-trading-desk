@@ -157,3 +157,8 @@ wrote.
 ## Licence
 
 MIT. See `LICENSE`.
+
+This software is a console for reading and organising what a set of AI agents wrote.
+It is not financial advice, it does not pick securities, and it ships no positions or
+account data. Any configuration values in this repository are placeholders. You are
+responsible for your own trades.
