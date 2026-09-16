@@ -1048,12 +1048,21 @@ whole rather than half.
 The middle-of-sentence match is the one with a sharp edge, because a table entry
 becomes a pattern and a pattern can match something it was not written for. Two things
 hold it in: the pattern describes the WHOLE message, and an entry needs a floor of its
-own literal words before it is compiled at all. Without the floor, a short entry such
-as the group label's `{pod} pod` would compile to "anything ending in ` pod`" and
-rewrite the tail of a sentence someone dictated. The two entries below that floor are
-matched by shape instead, and the `group` field — whose shape genuinely is a pod name
-with `pod` on the end — gets `groupLabel()`, a transform named for the FIELD rather
-than guessing from text.
+own literal words before it is compiled at all. A short entry compiles to a pattern
+that matches almost anything and would rewrite the tail of a sentence someone
+dictated. The one entry left below that floor is matched by shape instead: a stage
+label arrives as `Analysis 6/8` and the trailing-count rule handles it.
+
+The `group` field is not in the table at all, and that is the shape of the rule
+generally. Both producers — `_group_label` in `backend/org.py`, used when a roster row
+carries no group, and `crews/gen_members.py`, used when it does — build `<book> ·
+<pod>` and deliberately leave out any word for "pod", because that word is the one
+part of the label that changes with the reader. `groupLabel()` in `ui/i18n.mjs`
+appends it. Naming the FIELD rather than writing a pattern is what makes this safe: as
+a pattern the label is "anything at all". The two producers shipped disagreeing once —
+one wrote `Book A · x pod`, the other `Core · x` — and the row carrying the English
+noun kept it in a Chinese screen, because there was nothing left to append;
+[`tests/test_i18n.py`](../tests/test_i18n.py) now calls both and compares them.
 
 Text a crew member wrote is never translated. A brief, a regime call, a thread title,
 an event `msg` typed by an agent is shown exactly as written; `phrase()` returns an
@@ -1072,8 +1081,9 @@ check compares the two tables to each other instead of calling `t()`.
 [`tests/test_i18n.py`](../tests/test_i18n.py) holds the whole contract as assertions:
 no Chinese string or comment outside the tables, the two tables at key parity, every
 key the UI asks for present in both, every backend phrase carrying a Chinese reading,
-crew text surviving both languages byte for byte, and the opening language. Each
-assertion was confirmed to fail when the thing it guards is broken. Because
+crew text surviving both languages byte for byte, the two group-label producers
+agreeing and neither writing the pod noun, and the opening language. Each assertion was
+confirmed to fail when the thing it guards is broken. Because
 Chinese exists only in `ui/i18n.mjs`, the contract in §2 and the shapes in
 [`tests/schema.py`](../tests/schema.py) are stated once, in English, and the UI is the
 only place a second language is added.

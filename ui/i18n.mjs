@@ -215,8 +215,9 @@ const PHRASE_ZH = {
     '带 {pod} 组（{tickers}）：把组内结论收敛成一份组报告。',
 
   // group label (group)
-  '{pod} pod': '{pod} 组',
-  'Book {books} · {pod} pod': 'Book {books} · {pod} 组',
+  // The `group` field is NOT here. Both producers leave the word for "pod" out of
+  // it, and `groupLabel()` appends the reader's own -- see its comment for why a
+  // pattern would be the wrong tool for a label that is otherwise free text.
 
   // stage names (stages[].name)
   Analysis: '分析',
@@ -266,10 +267,11 @@ const PHRASE_ZH = {
  *
  * - The pattern is anchored at both ends, so it describes the WHOLE message.
  * - A template needs at least `MIN_LITERAL` characters of its own words. Without
- *   that floor, a short entry such as `{pod} pod` compiles to "anything ending in
- *   ` pod`" and would rewrite the tail of a sentence someone dictated. Short
- *   entries stay in the table for reference and are matched by shape instead:
- *   `{stage} {a}/{b}` arrives as `Analysis 6/8`, handled by the counted rules.
+ *   that floor, a short entry compiles to a pattern that matches almost anything
+ *   and would rewrite the tail of a sentence someone dictated -- which is why the
+ *   `group` field is handled by `groupLabel()` and not by an entry here at all.
+ *   The one short entry that remains is matched by shape instead: `{stage} {a}/{b}`
+ *   arrives as `Analysis 6/8` and is handled by the counted rules above.
  *
  * More literal text wins, so `0/{b} not started` is tried before the general
  * `{a}/{b} not started`.
@@ -355,22 +357,23 @@ export function phrase(text, depth = 0) {
 /**
  * The `group` field of a member row, in the reader's language.
  *
- * Its own field rather than a `phrase()` case, because the shape is a pod name
- * with the word `pod` on the end -- as a general pattern that would rewrite the
- * tail of any sentence a crew member happened to finish with that word. Naming
- * the FIELD keeps the transform where the shape is actually guaranteed.
+ * Its own field rather than a `phrase()` case, because as a pattern this would be
+ * "anything at all" and would rewrite whatever a crew member happened to say.
+ * Naming the FIELD keeps the transform where the shape is actually guaranteed.
  *
- * Handles `Book A · example-megacap pod` and the single-book `example-megacap
- * pod`, and a roster written before the suffix rule, which ended the label with
- * the legacy Chinese noun (matched by escape so no literal CJK sits in source).
+ * Both producers -- `_group_label` in `backend/org.py` and `crews/gen_members.py`
+ * -- build `<book> · <pod>` and deliberately leave out any word for "pod", since
+ * that word is the one part of the label that has to change with the reader. A
+ * roster written before that rule ended the label with the noun itself, so an
+ * English or legacy Chinese suffix is stripped first (matched by escape, so no
+ * literal CJK sits in source) and a row never reads `x pod pod`.
  */
 export function groupLabel(group) {
   const s = String(group || '').trim()
   if (!s) return ''
-  const known = phrase(s)
-  if (known !== s) return known
-  const stripped = s.replace(/\s*(\u7ec4|pod)$/i, '')
-  return stripped === s ? s : `${stripped} ${t('pod_suffix')}`
+  const stripped = s.replace(/\s*(\u7ec4|pod)$/i, '').trim()
+  if (!stripped) return s
+  return `${stripped} ${t('pod_suffix')}`
 }
 
 /** Interpolate `{name}` placeholders, leaving an unknown one in place. */

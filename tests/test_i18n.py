@@ -29,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-from helpers import require_path
+from helpers import require_json, require_module, require_path
 
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff]")
 
@@ -304,6 +304,80 @@ console.log(JSON.stringify({{ changed }}))
         "[ARCHITECTURE.md §14] crew-authored text was rewritten by the switch:\n"
         + "\n".join(result["changed"])
     )
+
+
+def test_neither_group_label_producer_bakes_in_the_word_pod(desk_root: Path) -> None:
+    """The pod noun belongs to the reader, so neither producer may write it.
+
+    Two places build a pod row's `group`: `_group_label` in `backend/org.py`, used
+    when a roster row carries none, and `crews/gen_members.py`, used when it does.
+    They shipped disagreeing once -- one wrote `Book A - x pod`, the other `Core -
+    x` -- and the row carrying the English noun kept it in a Chinese screen,
+    because `groupLabel()` in the UI had nothing left to append.
+
+    Checked by CALLING them, not by reading them: the words `pod` and `"pod"`
+    appear all over both files as an argument name and a JSON key, so a text scan
+    reports those and misses a label built by concatenation.
+    """
+    org = require_module("backend/org.py", "backend.org", "§2 GET /org")
+    pods = [p for p in (org.deskdata.pods(desk_root) or {})]
+    assert pods, "the desk_root fixture grew no pods -- this test proves nothing"
+
+    produced: dict[str, str] = {}
+    for pod in pods:
+        produced[f"_group_label({pod})"] = org._group_label(desk_root, pod)
+
+    # The generator's side is read from what it actually WROTE. `crews/` is not on
+    # `sys.path`, and the committed roster is its output, so this checks the real
+    # artifact rather than a re-derivation of the rule under test.
+    roster = require_json("crews/members.json", "§4 the roster")
+    rows = roster["members"] if isinstance(roster, dict) else roster
+    for row in rows:
+        label = row.get("group")
+        if label:
+            produced[f"roster({row['id']})"] = str(label)
+
+    offenders = {
+        where: value
+        for where, value in produced.items()
+        if re.search(r"\bpods?\b", str(value), re.IGNORECASE)
+    }
+    assert not offenders, (
+        "[ARCHITECTURE.md §14] a group label carries the word for \"pod\" -- leave "
+        "it out and let groupLabel() append the reader's own:\n"
+        + "\n".join(f"  {k} -> {v!r}" for k, v in offenders.items())
+    )
+    # And the two agree on the shape, which is the failure that actually shipped.
+    # `+` sits inside the token class on purpose: a pod held by two books reads
+    # `A+B - pod`, the same shape carrying more data rather than a second shape.
+    shapes = {re.sub(r"[\w.+-]+", "X", v) for v in produced.values()}
+    assert len(shapes) == 1, f"the producers disagree on shape: {sorted(shapes)}\n{produced}"
+
+
+def test_the_group_label_gets_the_readers_own_pod_noun(tmp_path: Path) -> None:
+    """Whatever the producers wrote, the row ends in a word the reader knows."""
+    result = _run_node_probe(tmp_path, """
+const cases = ['Core · example-megacap', 'example-megacap', 'Core+Tactical · x',
+               'Core · example-megacap pod']
+const out = {}
+for (const lang of ['en', 'zh-CN']) {
+  m.setLang(lang)
+  out[lang] = cases.map((c) => m.groupLabel(c))
+}
+m.setLang('zh-CN')
+out.empty = [m.groupLabel(''), m.groupLabel(null), m.groupLabel(undefined)]
+console.log(JSON.stringify(out))
+""")
+    assert result["en"] == [
+        "Core · example-megacap pod",
+        "example-megacap pod",
+        "Core+Tactical · x pod",
+        # a legacy label that already carried the noun is not doubled
+        "Core · example-megacap pod",
+    ], result["en"]
+    assert all(row.endswith("\u7ec4") for row in result["zh-CN"]), result["zh-CN"]
+    assert all("pod" not in row for row in result["zh-CN"]), result["zh-CN"]
+    assert result["empty"] == ["", "", ""], result["empty"]
 
 
 def test_the_app_opens_in_english_unless_the_browser_asks_for_chinese(tmp_path: Path) -> None:

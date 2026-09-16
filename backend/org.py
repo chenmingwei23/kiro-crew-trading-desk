@@ -124,10 +124,17 @@ def _fallback_members(root: Path) -> list[dict[str, Any]]:
 
 
 def _group_label(root: Path, pod: str) -> str:
+    """A pod row's group label: its book, then the pod.
+
+    Carries NO word for "pod". `crews/gen_members.py` builds the same label the
+    same way for a stored roster, and the UI appends the reader's own noun
+    (`groupLabel` in `ui/i18n.mjs`); a noun baked in here would survive the
+    language switch and strand an English word inside a Chinese row.
+    """
     held = deskdata.books_holding(root, pod)
     if not held:
-        return f"{pod} pod"
-    return "Book " + "+".join(held) + f" · {pod} pod"
+        return str(pod)
+    return "+".join(held) + f" · {pod}"
 
 
 def _duty(member: dict[str, Any], pod: str | None, tickers: list[str], pod_count: int) -> str:
