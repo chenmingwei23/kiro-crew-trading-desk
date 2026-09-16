@@ -1,0 +1,76 @@
+{
+  "threads": [
+    {
+      "id": "th-fund-2026-09-07-1",
+      "kind": "thread",
+      "title": "Megacap deep dive",
+      "member": "fund",
+      "state": "running",
+      "opened_at": "2026-09-07T09:06:00Z",
+      "participants": [
+        "fund"
+      ],
+      "last_msg": "One more pass with macro on the supply question",
+      "entry_count": 6,
+      "last_ts": "2026-09-07T09:38:00Z",
+      "anchor": {
+        "main_msg": "m-cb7d8d667dd857c3",
+        "ts": "2026-09-07T08:55:00Z",
+        "preview": "Research the megacap pod, focus on demand and supply"
+      },
+      "slot_key": "chat-9001-1757260800",
+      "agent": "tada-fund-manager",
+      "refs": {
+        "run_date": "2026-09-07",
+        "artifacts": []
+      }
+    },
+    {
+      "id": "th-fund-2026-09-07-2",
+      "kind": "dispatch",
+      "title": "desk-manager",
+      "member": "desk",
+      "state": "done",
+      "opened_at": "2026-09-07T09:05:00Z",
+      "participants": [
+        "fund",
+        "desk"
+      ],
+      "last_msg": "Both pods' conclusions are in; desk view written",
+      "entry_count": 4,
+      "last_ts": "2026-09-07T09:40:00Z",
+      "anchor": {
+        "main_msg": "m-cb7d8d667dd857c3",
+        "ts": "2026-09-07T08:55:00Z",
+        "preview": "Research the megacap pod, focus on demand and supply"
+      },
+      "slot_key": "chat-9002-1757260800",
+      "agent": "tada-desk-manager",
+      "refs": {
+        "run_date": "2026-09-07",
+        "artifacts": []
+      }
+    },
+    {
+      "id": "th-fund-2026-09-07-3",
+      "kind": "thread",
+      "title": "Prior-round position review",
+      "member": "fund",
+      "state": "done",
+      "opened_at": "2026-09-07T09:07:00Z",
+      "participants": [
+        "fund"
+      ],
+      "last_msg": "Review notes saved to memory",
+      "entry_count": 9,
+      "last_ts": "2026-09-07T09:10:00Z",
+      "anchor": null,
+      "slot_key": "chat-9003-1757264400",
+      "agent": "tada-fund-manager",
+      "refs": {
+        "run_date": "2026-09-07",
+        "artifacts": []
+      }
+    }
+  ]
+}

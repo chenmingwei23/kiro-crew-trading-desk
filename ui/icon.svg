@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #8e48ff)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Trading Desk">
+  <path d="M3 17.5 8.5 11l4 3.5L21 6" />
+  <path d="M15.5 6H21v5.5" />
+  <path d="M3 21h18" />
+</svg>

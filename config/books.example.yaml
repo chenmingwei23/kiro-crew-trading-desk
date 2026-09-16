@@ -1,0 +1,39 @@
+# The books: capital and account rules.
+#
+# A book is a pot of money with its own mandate. Pods trade against a book, so
+# this is what makes "position size" mean something. The desk reads it to size a
+# proposal and to tell a pod what it may not do.
+#
+# Copy this to $DESK_ROOT/books.yaml and put your own numbers in it. Every value
+# below is a placeholder. Nothing in this repository holds an account.
+#
+# This file is the reason the desk root is DATA and not part of this repository:
+# it names your broker and states how much money is at stake.
+
+books:
+  book-a:
+    label: Core
+    mandate: Long-term positions. Equities only, no derivatives.
+    nav_usd: 10000
+    broker: PLACEHOLDER BROKER ACCOUNT
+    holds: [AAPL, MSFT, XOM, CVX]
+
+  book-b:
+    label: Tactical
+    mandate: Short-dated tactical risk. Options permitted, defined risk only.
+    nav_usd: 2000
+    broker: PLACEHOLDER BROKER ACCOUNT
+    holds: []
+
+# Rules the desk must respect regardless of which book a proposal lands in.
+# Every risk reviewer reads these, and a proposal that breaks one is rejected
+# before it reaches you.
+account_constraints:
+  max_position_pct_of_nav: 10
+  max_single_book_drawdown_pct: 20
+  # No position may be opened that expires inside this window -- short-dated
+  # options decay faster than a research round can react.
+  min_days_to_expiry: 14
+  # A YAML date, not a string. The config round trip preserves the type.
+  hard_expiry_date: 2030-01-01
+  cash_buffer_pct: 5

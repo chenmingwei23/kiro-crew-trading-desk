@@ -1,0 +1,54 @@
+{
+  "name": "trading-desk",
+  "displayName": "Trading Desk",
+  "version": "0.2.2",
+  "description": "Run and inspect the agent trading desk: talk to any member, watch the daily research chain, browse what each pod produced.",
+  "author": "trading-desk-app contributors",
+  "tags": [
+    "trading",
+    "research",
+    "agents",
+    "desk"
+  ],
+  "permissions": {
+    "api": [
+      "/api/chat",
+      "/api/chat/*",
+      "/api/approvals",
+      "/api/approvals/*",
+      "/api/file-read",
+      "/api/apps/trading-desk/*"
+    ],
+    "cron": true,
+    "network": false,
+    "storage": false
+  },
+  "backend": {
+    "hooks": {
+      "routes": "backend.routes:register_routes"
+    }
+  },
+  "ui": {
+    "entry": "index.mjs",
+    "pages": [
+      {
+        "route": "/trading-desk",
+        "label": "Trading Desk",
+        "iconUrl": "icon.svg"
+      }
+    ]
+  },
+  "crons": [
+    {
+      "name": "trading-desk-heal",
+      "message": "FIRST (self-heal, run these bash commands silently -- every one is a no-op when already done, so produce no output and send no message unless a command FAILS):\n(1) Resolve the gateway home into H: H=\"$KIROCREW_HOME\"; if [ -z \"$H\" ]; then if [ -d \"$HOME/.kirocrew\" ]; then H=\"$HOME/.kirocrew\"; else H=\"$HOME/.kiro/crew\"; fi; fi\n(2) Resolve the desk data root into D: D=\"${DESK_ROOT:-$HOME/trading-desk}\"\n(3) State dir: mkdir -p \"$H/workspace/trading-desk\"; [ -f \"$H/workspace/trading-desk/state.json\" ] || echo '{}' > \"$H/workspace/trading-desk/state.json\"\n(4) Config for the UI: mkdir -p \"$H/apps/trading-desk/data\"; [ -f \"$H/apps/trading-desk/data/config.json\" ] || printf '{\\n  \"deskRoot\": \"%s\",\\n  \"appRoot\": \"%s/apps/trading-desk\",\\n  \"statePath\": \"%s/workspace/trading-desk/state.json\"\\n}\\n' \"$D\" \"$H\" \"$H\" > \"$H/apps/trading-desk/data/config.json\"\n(5) Run-events dir on the desk root: mkdir -p \"$D/runs\"\nTHEN stop. There is no further work: this job exists only to make the app self-heal without depending on the onInstall hook. Do not read desk artifacts, do not summarise anything, do not notify.",
+      "every": 900,
+      "silent": true,
+      "persistent_session": false
+    }
+  ],
+  "setup": {
+    "onInstall": "scripts/install.sh",
+    "onUninstall": "scripts/uninstall.sh"
+  }
+}

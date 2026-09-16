@@ -1,0 +1,34 @@
+# The pods: who covers what.
+#
+# One entry per sector team. Each becomes a line manager in the org chart, with
+# the roles from roles.yaml underneath it. This is the other half of the org
+# chart -- roles.yaml says what a pod is made of, this says how many pods there
+# are and what each one watches.
+#
+# Copy this to $DESK_ROOT/sectors.yaml and put your own coverage in it. The app
+# falls back to this example when that file is absent, so a fresh clone runs.
+#
+# Two pods and four large-cap tickers are here as a shape to copy, NOT as a
+# recommendation. Nothing in this repository picks securities.
+#
+# Per pod:
+#   tickers         what this pod covers. Report directories are created per
+#                   ticker, so a ticker moving pods moves its reports with it.
+#   analyst_copies  independent runs per analyst role per ticker. Two copies of
+#                   four analysts on four tickers is 32 analyst reports a round,
+#                   so raise this only when you want the redundancy.
+#   book            which book in books.yaml this pod trades against.
+#   note            free text, shown nowhere -- for whoever edits this file.
+
+sectors:
+  example-megacap:
+    tickers: [AAPL, MSFT]
+    analyst_copies: 1
+    book: book-a
+    note: Large-cap technology. Placeholder coverage -- replace with your own.
+
+  example-energy:
+    tickers: [XOM, CVX]
+    analyst_copies: 1
+    book: book-a
+    note: Integrated energy. Placeholder coverage -- replace with your own.

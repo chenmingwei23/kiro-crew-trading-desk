@@ -1,0 +1,205 @@
+{
+  "date": "2026-09-07",
+  "live": false,
+  "chain": [
+    {
+      "member": "fund",
+      "steps": [
+        {
+          "label": "Instruction received",
+          "state": "done",
+          "at": "09:00"
+        },
+        {
+          "label": "Macro brief ordered",
+          "state": "done",
+          "at": "09:02"
+        },
+        {
+          "label": "Pods dispatched",
+          "state": "done",
+          "at": "09:05"
+        },
+        {
+          "label": "Desk report folded",
+          "state": "work",
+          "at": null
+        }
+      ]
+    },
+    {
+      "member": "macro",
+      "steps": [
+        {
+          "label": "Instruction received",
+          "state": "done",
+          "at": "09:00"
+        },
+        {
+          "label": "Macro brief delivered",
+          "state": "done",
+          "at": "09:02"
+        }
+      ]
+    },
+    {
+      "member": "desk",
+      "steps": [
+        {
+          "label": "Research instruction received",
+          "state": "done",
+          "at": "09:04"
+        },
+        {
+          "label": "Pods started",
+          "state": "done",
+          "at": "09:05"
+        },
+        {
+          "label": "Pod reports collected",
+          "state": "done",
+          "at": "09:40"
+        },
+        {
+          "label": "One-page brief",
+          "state": "work",
+          "at": null
+        }
+      ]
+    },
+    {
+      "member": "lm-example-megacap",
+      "steps": [
+        {
+          "label": "Analysts researched",
+          "state": "done",
+          "at": "09:20"
+        },
+        {
+          "label": "Bull and bear debate",
+          "state": "done",
+          "at": "09:28"
+        },
+        {
+          "label": "Trade proposals",
+          "state": "done",
+          "at": "09:32"
+        },
+        {
+          "label": "Risk review",
+          "state": "done",
+          "at": "09:38"
+        },
+        {
+          "label": "Pod conclusion",
+          "state": "done",
+          "at": "09:40"
+        }
+      ]
+    },
+    {
+      "member": "risk",
+      "steps": [
+        {
+          "label": "Awaiting pod conclusions",
+          "state": "todo",
+          "at": null
+        }
+      ]
+    }
+  ],
+  "pods": [
+    {
+      "pod": "example-megacap",
+      "state": "done",
+      "stages": [
+        {
+          "name": "analysis",
+          "done": 8,
+          "total": 8
+        },
+        {
+          "name": "debate",
+          "done": 4,
+          "total": 4
+        },
+        {
+          "name": "proposal",
+          "done": 2,
+          "total": 2
+        },
+        {
+          "name": "risk review",
+          "done": 6,
+          "total": 6
+        },
+        {
+          "name": "pod report",
+          "done": 1,
+          "total": 1
+        }
+      ],
+      "delivered_at": "09:40",
+      "fail_reason": null
+    },
+    {
+      "pod": "example-energy",
+      "state": "done",
+      "stages": [
+        {
+          "name": "analysis",
+          "done": 8,
+          "total": 8
+        },
+        {
+          "name": "debate",
+          "done": 4,
+          "total": 4
+        },
+        {
+          "name": "proposal",
+          "done": 2,
+          "total": 2
+        },
+        {
+          "name": "risk review",
+          "done": 6,
+          "total": 6
+        },
+        {
+          "name": "pod report",
+          "done": 1,
+          "total": 1
+        }
+      ],
+      "delivered_at": "09:40",
+      "fail_reason": null
+    }
+  ],
+  "events": [
+    {
+      "at": "09:00",
+      "who": "fund",
+      "msg": "Instruction received; scheduling today's research",
+      "hot": false
+    },
+    {
+      "at": "09:02",
+      "who": "macro",
+      "msg": "Macro brief delivered: neutral environment, no posture change",
+      "hot": true
+    },
+    {
+      "at": "09:05",
+      "who": "desk",
+      "msg": "Pods dispatched: example-megacap, example-energy",
+      "hot": false
+    },
+    {
+      "at": "09:40",
+      "who": "desk",
+      "msg": "All pods delivered their conclusions",
+      "hot": false
+    }
+  ]
+}

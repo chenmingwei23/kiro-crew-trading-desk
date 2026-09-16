@@ -1,0 +1,155 @@
+{
+  "members": [
+    {
+      "id": "fund",
+      "name": "fund-manager",
+      "title": "Fund Manager",
+      "duty": "Runs the desk day to day: takes an instruction, arranges the macro brief and each pod's research, follows it to completion, and returns one short report plus anything that needs a decision.",
+      "parent": null,
+      "state": "working",
+      "state_msg": "Folding the pods' conclusions into today's report",
+      "slot_key": "chat-9101-1000000001",
+      "recent_outputs": [
+        {
+          "label": "Latest brief",
+          "path": "memory/briefs/2026-09-07.md"
+        }
+      ],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": true
+    },
+    {
+      "id": "macro",
+      "name": "macro-strategist",
+      "title": "Macro Strategist",
+      "duty": "Calls the market environment before the open and suggests each pod's posture across index, volatility, rates, gold and oil -- never a single name.",
+      "parent": "fund",
+      "state": "idle",
+      "state_msg": "Today's macro brief is in",
+      "slot_key": "chat-9102-1000000002",
+      "recent_outputs": [
+        {
+          "label": "Today's macro brief",
+          "path": "teams/macro/reports/2026-09-07.md"
+        }
+      ],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": false
+    },
+    {
+      "id": "desk",
+      "name": "desk-manager",
+      "title": "Desk Manager",
+      "duty": "Runs research across the sector pods, tracks their progress, and folds their conclusions into a one-page brief ranked by conviction and payoff.",
+      "parent": "fund",
+      "state": "working",
+      "state_msg": "Both pods in; writing the one-page brief",
+      "slot_key": "chat-9103-1000000003",
+      "recent_outputs": [
+        {
+          "label": "Latest brief",
+          "path": "memory/briefs/2026-09-07.md"
+        }
+      ],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": true
+    },
+    {
+      "id": "risk",
+      "name": "risk-pod",
+      "title": "Portfolio Risk",
+      "duty": "Portfolio-level risk: measures exposure, concentration and tail risk from the pods' conclusions and the live book, and flags what needs a hedge. Flags risk; never recommends a trade.",
+      "parent": "fund",
+      "state": "idle",
+      "state_msg": "Waiting on the pods before starting",
+      "slot_key": null,
+      "recent_outputs": [],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": false
+    },
+    {
+      "id": "trader",
+      "name": "trader",
+      "title": "Trader",
+      "duty": "Places the orders once they are approved.",
+      "parent": "fund",
+      "state": "idle",
+      "state_msg": "No orders to place",
+      "slot_key": null,
+      "recent_outputs": [],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": false
+    },
+    {
+      "id": "scrum",
+      "name": "scrum-master",
+      "title": "Scrum Master",
+      "duty": "Runs the standup and the post-close review, and keeps the team's delivery cadence honest.",
+      "parent": "fund",
+      "state": "idle",
+      "state_msg": "Standup notes are out",
+      "slot_key": null,
+      "recent_outputs": [],
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "slot_live": false
+    },
+    {
+      "id": "lm-example-megacap",
+      "name": "line-manager · example-megacap",
+      "title": "Line Manager",
+      "duty": "Owns the example-megacap pod (AAPL MSFT): has the analysts research each name, chairs the bull and bear debate and the risk review, and delivers the pod's conclusion on every ticker.",
+      "parent": "desk",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [
+        "AAPL",
+        "MSFT"
+      ],
+      "state": "idle",
+      "state_msg": "Pod conclusion delivered",
+      "slot_key": null,
+      "recent_outputs": [
+        {
+          "label": "Latest pod report",
+          "path": "teams/example-megacap/reports/2026-09-07.md"
+        }
+      ],
+      "slot_live": false
+    },
+    {
+      "id": "lm-example-energy",
+      "name": "line-manager · example-energy",
+      "title": "Line Manager",
+      "duty": "Owns the example-energy pod (XOM CVX): has the analysts research each name, chairs the bull and bear debate and the risk review, and delivers the pod's conclusion on every ticker.",
+      "parent": "desk",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [
+        "XOM",
+        "CVX"
+      ],
+      "state": "idle",
+      "state_msg": "Pod conclusion delivered",
+      "slot_key": null,
+      "recent_outputs": [
+        {
+          "label": "Latest pod report",
+          "path": "teams/example-energy/reports/2026-09-07.md"
+        }
+      ],
+      "slot_live": false
+    }
+  ]
+}

@@ -1,0 +1,586 @@
+{
+  "version": 1,
+  "generated_by": "crews/gen_members.py",
+  "sources": [
+    "sectors.yaml",
+    "roles.yaml"
+  ],
+  "members": [
+    {
+      "id": "fund",
+      "name": "fund-manager",
+      "alias": "fund@",
+      "title": "Fund Manager",
+      "avatar_letter": "F",
+      "duty": "Runs the desk day to day. Takes an instruction, orders the macro brief and the pods' research, follows it to completion, and comes back with one short report plus whatever needs a decision.",
+      "parent": null,
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "5",
+      "agent": "tada-fund-manager",
+      "slot_hint": {
+        "folder": "Trading Desk",
+        "title": "fund-manager"
+      },
+      "output_sources": [
+        {
+          "label": "report",
+          "dir": "memory/briefs"
+        }
+      ]
+    },
+    {
+      "id": "macro",
+      "name": "macro-strategist",
+      "alias": "macro@",
+      "title": "Macro Strategist",
+      "avatar_letter": "M",
+      "duty": "Calls the market environment before the open and suggests each pod's posture. Covers index, volatility, the dollar, rates, gold, oil and crypto -- never a single name.",
+      "parent": "fund",
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-macro-strategist",
+      "slot_hint": {
+        "folder": "Trading Desk",
+        "title": "macro-strategist"
+      },
+      "output_sources": [
+        {
+          "label": "macro brief",
+          "dir": "teams/macro/reports"
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "name": "desk-manager",
+      "alias": "desk@",
+      "title": "Desk Manager",
+      "avatar_letter": "D",
+      "duty": "Runs research across 2 sector pods. Starts them, tracks progress, and once all are in, folds their conclusions into a one-page brief with the opportunities ranked by conviction and payoff.",
+      "duty_template": "Runs research across {pod_count} sector pods. Starts them, tracks progress, and once all are in, folds their conclusions into a one-page brief with the opportunities ranked by conviction and payoff.",
+      "parent": "fund",
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "2",
+      "agent": "tada-desk-manager",
+      "slot_hint": {
+        "folder": "Trading Desk/Desk",
+        "title": "desk-manager"
+      },
+      "output_sources": [
+        {
+          "label": "desk brief",
+          "dir": "memory/briefs"
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "name": "risk-pod",
+      "alias": "risk@",
+      "title": "Portfolio Risk",
+      "avatar_letter": "R",
+      "duty": "Portfolio-level risk. Takes the pods' conclusions and the live book, measures exposure, concentration and tail risk, and proposes hedges. Flags risk; never recommends a trade.",
+      "parent": "fund",
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-pod",
+      "slot_hint": {
+        "folder": "Trading Desk",
+        "title": "risk-pod"
+      },
+      "output_sources": [
+        {
+          "label": "risk report",
+          "dir": "portfolio/risk"
+        }
+      ]
+    },
+    {
+      "id": "trader",
+      "name": "trader",
+      "alias": "trader@",
+      "title": "Trader",
+      "avatar_letter": "T",
+      "duty": "Places the orders. Nothing is executed until you have approved it.",
+      "parent": "fund",
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-trader",
+      "slot_hint": {
+        "folder": "Trading Desk",
+        "title": "trader"
+      },
+      "output_sources": [
+        {
+          "label": "fills",
+          "dir": "portfolio"
+        }
+      ]
+    },
+    {
+      "id": "scrum",
+      "name": "scrum-master",
+      "alias": "scrum@",
+      "title": "Scrum Master",
+      "avatar_letter": "S",
+      "duty": "Runs the morning standup and the post-close review, and keeps the team's delivery cadence honest.",
+      "parent": "fund",
+      "group": null,
+      "pod": null,
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-scrum-master",
+      "slot_hint": {
+        "folder": "Trading Desk",
+        "title": "scrum-master"
+      },
+      "output_sources": []
+    },
+    {
+      "id": "lm-example-megacap",
+      "name": "line-manager · example-megacap",
+      "alias": "example-megacap@",
+      "title": "Line Manager",
+      "avatar_letter": "L",
+      "duty": "Owns the example-megacap pod (AAPL MSFT). Has the analysts research it independently, chairs the bull/bear debate and the risk review, and delivers this pod's conclusion on every ticker it covers.",
+      "duty_template": "Owns the {pod} pod ({tickers}). Has the analysts research it independently, chairs the bull/bear debate and the risk review, and delivers this pod's conclusion on every ticker it covers.",
+      "parent": "desk",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [
+        "AAPL",
+        "MSFT"
+      ],
+      "reports_label": "10",
+      "agent": "tada-line-manager",
+      "slot_hint": {
+        "folder": "Trading Desk/Desk/example-megacap",
+        "title": "line-manager · example-megacap"
+      },
+      "output_sources": [
+        {
+          "label": "pod report",
+          "dir": "teams/example-megacap/reports"
+        }
+      ]
+    },
+    {
+      "id": "ic-example-megacap-technicals",
+      "name": "technicals · example-megacap",
+      "alias": "technicals@example-megacap",
+      "title": "Technical Analyst",
+      "avatar_letter": "TE",
+      "duty": "Price and volume only. Trend, support and resistance, momentum, unusual volume -- a technical read on this ticker.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-technicals",
+      "artifact_globs": [
+        "technicals-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-fundamentals",
+      "name": "fundamentals · example-megacap",
+      "alias": "fundamentals@example-megacap",
+      "title": "Fundamental Analyst",
+      "avatar_letter": "FU",
+      "duty": "The filings and the business. Revenue and margin, guidance, valuation -- a fundamental read on this ticker.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-fundamentals",
+      "artifact_globs": [
+        "fundamentals-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-sentiment",
+      "name": "sentiment · example-megacap",
+      "alias": "sentiment@example-megacap",
+      "title": "Sentiment Analyst",
+      "avatar_letter": "SE",
+      "duty": "How the market is positioned. Flows, options open interest, retail versus institutional posture.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-sentiment",
+      "artifact_globs": [
+        "sentiment-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-news",
+      "name": "news · example-megacap",
+      "alias": "news@example-megacap",
+      "title": "News Analyst",
+      "avatar_letter": "NE",
+      "duty": "What just happened. Filings, sector moves, supply chain and policy -- and which of them actually moves this ticker.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-news",
+      "artifact_globs": [
+        "news-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-bull",
+      "name": "bull · example-megacap",
+      "alias": "bull@example-megacap",
+      "title": "Bull Researcher",
+      "avatar_letter": "BU",
+      "duty": "Argues the long side using the strongest evidence in the four analyst reports, and answers the bear's objections.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-bull",
+      "artifact_globs": [
+        "bull-thesis.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-bear",
+      "name": "bear · example-megacap",
+      "alias": "bear@example-megacap",
+      "title": "Bear Researcher",
+      "avatar_letter": "BE",
+      "duty": "Argues the short side -- valuation, competition and execution risk -- and attacks the bull's weakest assumption.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-bear",
+      "artifact_globs": [
+        "bear-thesis.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-trader",
+      "name": "trader · example-megacap",
+      "alias": "trader@example-megacap",
+      "title": "Pod Trader",
+      "avatar_letter": "TR",
+      "duty": "Hears both sides, then proposes a direction, a size and a stop for this ticker, and sends it to risk review.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-trader-initial",
+      "artifact_globs": [
+        "trade-proposal-initial.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-risk-aggressive",
+      "name": "risk-aggressive · example-megacap",
+      "alias": "risk-aggressive@example-megacap",
+      "title": "Risk Review · Aggressive",
+      "avatar_letter": "RA",
+      "duty": "Reviews the proposal for missed upside: are the odds good enough, is the size too timid for the setup.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-aggressive",
+      "artifact_globs": [
+        "risk-aggressive.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-risk-conservative",
+      "name": "risk-conservative · example-megacap",
+      "alias": "risk-conservative@example-megacap",
+      "title": "Risk Review · Conservative",
+      "avatar_letter": "RC",
+      "duty": "Reviews the proposal for downside: what the worst case costs, whether the stop holds, whether the book can absorb it.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-conservative",
+      "artifact_globs": [
+        "risk-conservative.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-megacap-risk-neutral",
+      "name": "risk-neutral · example-megacap",
+      "alias": "risk-neutral@example-megacap",
+      "title": "Risk Review · Neutral",
+      "avatar_letter": "RN",
+      "duty": "Weighs the aggressive and conservative reviews against each other and lands one executable compromise.",
+      "parent": "lm-example-megacap",
+      "group": "Core · example-megacap",
+      "pod": "example-megacap",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-neutral",
+      "artifact_globs": [
+        "risk-neutral.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "lm-example-energy",
+      "name": "line-manager · example-energy",
+      "alias": "example-energy@",
+      "title": "Line Manager",
+      "avatar_letter": "L",
+      "duty": "Owns the example-energy pod (XOM CVX). Has the analysts research it independently, chairs the bull/bear debate and the risk review, and delivers this pod's conclusion on every ticker it covers.",
+      "duty_template": "Owns the {pod} pod ({tickers}). Has the analysts research it independently, chairs the bull/bear debate and the risk review, and delivers this pod's conclusion on every ticker it covers.",
+      "parent": "desk",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [
+        "XOM",
+        "CVX"
+      ],
+      "reports_label": "10",
+      "agent": "tada-line-manager",
+      "slot_hint": {
+        "folder": "Trading Desk/Desk/example-energy",
+        "title": "line-manager · example-energy"
+      },
+      "output_sources": [
+        {
+          "label": "pod report",
+          "dir": "teams/example-energy/reports"
+        }
+      ]
+    },
+    {
+      "id": "ic-example-energy-technicals",
+      "name": "technicals · example-energy",
+      "alias": "technicals@example-energy",
+      "title": "Technical Analyst",
+      "avatar_letter": "TE",
+      "duty": "Price and volume only. Trend, support and resistance, momentum, unusual volume -- a technical read on this ticker.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-technicals",
+      "artifact_globs": [
+        "technicals-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-fundamentals",
+      "name": "fundamentals · example-energy",
+      "alias": "fundamentals@example-energy",
+      "title": "Fundamental Analyst",
+      "avatar_letter": "FU",
+      "duty": "The filings and the business. Revenue and margin, guidance, valuation -- a fundamental read on this ticker.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-fundamentals",
+      "artifact_globs": [
+        "fundamentals-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-sentiment",
+      "name": "sentiment · example-energy",
+      "alias": "sentiment@example-energy",
+      "title": "Sentiment Analyst",
+      "avatar_letter": "SE",
+      "duty": "How the market is positioned. Flows, options open interest, retail versus institutional posture.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-sentiment",
+      "artifact_globs": [
+        "sentiment-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-news",
+      "name": "news · example-energy",
+      "alias": "news@example-energy",
+      "title": "News Analyst",
+      "avatar_letter": "NE",
+      "duty": "What just happened. Filings, sector moves, supply chain and policy -- and which of them actually moves this ticker.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-news",
+      "artifact_globs": [
+        "news-copy-*.md"
+      ],
+      "per_ticker": null,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-bull",
+      "name": "bull · example-energy",
+      "alias": "bull@example-energy",
+      "title": "Bull Researcher",
+      "avatar_letter": "BU",
+      "duty": "Argues the long side using the strongest evidence in the four analyst reports, and answers the bear's objections.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-bull",
+      "artifact_globs": [
+        "bull-thesis.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-bear",
+      "name": "bear · example-energy",
+      "alias": "bear@example-energy",
+      "title": "Bear Researcher",
+      "avatar_letter": "BE",
+      "duty": "Argues the short side -- valuation, competition and execution risk -- and attacks the bull's weakest assumption.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-bear",
+      "artifact_globs": [
+        "bear-thesis.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-trader",
+      "name": "trader · example-energy",
+      "alias": "trader@example-energy",
+      "title": "Pod Trader",
+      "avatar_letter": "TR",
+      "duty": "Hears both sides, then proposes a direction, a size and a stop for this ticker, and sends it to risk review.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-trader-initial",
+      "artifact_globs": [
+        "trade-proposal-initial.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-risk-aggressive",
+      "name": "risk-aggressive · example-energy",
+      "alias": "risk-aggressive@example-energy",
+      "title": "Risk Review · Aggressive",
+      "avatar_letter": "RA",
+      "duty": "Reviews the proposal for missed upside: are the odds good enough, is the size too timid for the setup.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-aggressive",
+      "artifact_globs": [
+        "risk-aggressive.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-risk-conservative",
+      "name": "risk-conservative · example-energy",
+      "alias": "risk-conservative@example-energy",
+      "title": "Risk Review · Conservative",
+      "avatar_letter": "RC",
+      "duty": "Reviews the proposal for downside: what the worst case costs, whether the stop holds, whether the book can absorb it.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-conservative",
+      "artifact_globs": [
+        "risk-conservative.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    },
+    {
+      "id": "ic-example-energy-risk-neutral",
+      "name": "risk-neutral · example-energy",
+      "alias": "risk-neutral@example-energy",
+      "title": "Risk Review · Neutral",
+      "avatar_letter": "RN",
+      "duty": "Weighs the aggressive and conservative reviews against each other and lands one executable compromise.",
+      "parent": "lm-example-energy",
+      "group": "Core · example-energy",
+      "pod": "example-energy",
+      "tickers": [],
+      "reports_label": "0",
+      "agent": "tada-risk-neutral",
+      "artifact_globs": [
+        "risk-neutral.md"
+      ],
+      "per_ticker": 1,
+      "output_sources": []
+    }
+  ]
+}

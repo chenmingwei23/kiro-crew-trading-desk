@@ -1,0 +1,63 @@
+{
+  "books": {
+    "books": {
+      "book-a": {
+        "label": "Core",
+        "mandate": "Long-term positions. Equities only, no derivatives.",
+        "nav_usd": 10000,
+        "broker": "PLACEHOLDER BROKER ACCOUNT",
+        "holds": [
+          "AAPL",
+          "MSFT",
+          "XOM",
+          "CVX"
+        ]
+      },
+      "book-b": {
+        "label": "Tactical",
+        "mandate": "Short-dated tactical risk. Options permitted, defined risk only.",
+        "nav_usd": 2000,
+        "broker": "PLACEHOLDER BROKER ACCOUNT",
+        "holds": []
+      }
+    },
+    "account_constraints": {
+      "max_position_pct_of_nav": 10,
+      "max_single_book_drawdown_pct": 20,
+      "min_days_to_expiry": 14,
+      "hard_expiry_date": "2030-01-01",
+      "cash_buffer_pct": 5
+    }
+  },
+  "sectors": {
+    "sectors": {
+      "example-megacap": {
+        "tickers": [
+          "AAPL",
+          "MSFT"
+        ],
+        "analyst_copies": 1,
+        "book": "book-a",
+        "note": "Large-cap technology. Placeholder coverage -- replace with your own.",
+        "line_manager": "line-manager"
+      },
+      "example-energy": {
+        "tickers": [
+          "XOM",
+          "CVX"
+        ],
+        "analyst_copies": 1,
+        "book": "book-a",
+        "note": "Integrated energy. Placeholder coverage -- replace with your own.",
+        "line_manager": "line-manager"
+      }
+    }
+  },
+  "constraints": {
+    "max_position_pct_of_nav": 10,
+    "max_single_book_drawdown_pct": 20,
+    "min_days_to_expiry": 14,
+    "hard_expiry_date": "2030-01-01",
+    "cash_buffer_pct": 5
+  }
+}

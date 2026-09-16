@@ -1,0 +1,17 @@
+# Local install artifacts -- never committed.
+# data/ holds runtime config.json with machine-resolved absolute paths and a
+# stale install-time version; committing it causes version-display and path bugs
+# on every other machine.
+/build
+/release-info
+.app_secret
+app-crons.json
+installed.json
+data/
+
+# Python caches -- this repo runs pytest and ships a Python backend, so these
+# appear on every test run. Beyond the app-dev skill's standard list, but a
+# repo whose discipline forbids `git add -A` still should not show junk.
+__pycache__/
+*.py[cod]
+.pytest_cache/

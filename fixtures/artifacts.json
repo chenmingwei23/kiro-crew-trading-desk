@@ -1,0 +1,203 @@
+{
+  "dates": [
+    "2026-09-07"
+  ],
+  "tree": [
+    {
+      "group": "Desk brief",
+      "files": [
+        {
+          "label": "Desk brief",
+          "path": "memory/briefs/2026-09-07.md"
+        }
+      ]
+    },
+    {
+      "group": "Macro",
+      "files": [
+        {
+          "label": "Today's macro brief",
+          "path": "teams/macro/reports/2026-09-07.md"
+        }
+      ]
+    },
+    {
+      "group": "example-megacap",
+      "files": [
+        {
+          "label": "Pod report",
+          "path": "teams/example-megacap/reports/2026-09-07.md"
+        },
+        {
+          "label": "AAPL · Technicals",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/technicals-copy-1.md"
+        },
+        {
+          "label": "AAPL · Fundamentals",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/fundamentals-copy-1.md"
+        },
+        {
+          "label": "AAPL · Sentiment",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/sentiment-copy-1.md"
+        },
+        {
+          "label": "AAPL · News",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/news-copy-1.md"
+        },
+        {
+          "label": "AAPL · Bull thesis",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/bull-thesis.md"
+        },
+        {
+          "label": "AAPL · Bear thesis",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/bear-thesis.md"
+        },
+        {
+          "label": "AAPL · Trade proposal",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/trade-proposal-initial.md"
+        },
+        {
+          "label": "AAPL · Risk review · aggressive",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/risk-aggressive.md"
+        },
+        {
+          "label": "AAPL · Risk review · conservative",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/risk-conservative.md"
+        },
+        {
+          "label": "AAPL · Risk review · neutral",
+          "path": "teams/example-megacap/reports/2026-09-07/AAPL/risk-neutral.md"
+        },
+        {
+          "label": "MSFT · Technicals",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/technicals-copy-1.md"
+        },
+        {
+          "label": "MSFT · Fundamentals",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/fundamentals-copy-1.md"
+        },
+        {
+          "label": "MSFT · Sentiment",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/sentiment-copy-1.md"
+        },
+        {
+          "label": "MSFT · News",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/news-copy-1.md"
+        },
+        {
+          "label": "MSFT · Bull thesis",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/bull-thesis.md"
+        },
+        {
+          "label": "MSFT · Bear thesis",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/bear-thesis.md"
+        },
+        {
+          "label": "MSFT · Trade proposal",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/trade-proposal-initial.md"
+        },
+        {
+          "label": "MSFT · Risk review · aggressive",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/risk-aggressive.md"
+        },
+        {
+          "label": "MSFT · Risk review · conservative",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/risk-conservative.md"
+        },
+        {
+          "label": "MSFT · Risk review · neutral",
+          "path": "teams/example-megacap/reports/2026-09-07/MSFT/risk-neutral.md"
+        }
+      ]
+    },
+    {
+      "group": "example-energy",
+      "files": [
+        {
+          "label": "Pod report",
+          "path": "teams/example-energy/reports/2026-09-07.md"
+        },
+        {
+          "label": "CVX · Technicals",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/technicals-copy-1.md"
+        },
+        {
+          "label": "CVX · Fundamentals",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/fundamentals-copy-1.md"
+        },
+        {
+          "label": "CVX · Sentiment",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/sentiment-copy-1.md"
+        },
+        {
+          "label": "CVX · News",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/news-copy-1.md"
+        },
+        {
+          "label": "CVX · Bull thesis",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/bull-thesis.md"
+        },
+        {
+          "label": "CVX · Bear thesis",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/bear-thesis.md"
+        },
+        {
+          "label": "CVX · Trade proposal",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/trade-proposal-initial.md"
+        },
+        {
+          "label": "CVX · Risk review · aggressive",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/risk-aggressive.md"
+        },
+        {
+          "label": "CVX · Risk review · conservative",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/risk-conservative.md"
+        },
+        {
+          "label": "CVX · Risk review · neutral",
+          "path": "teams/example-energy/reports/2026-09-07/CVX/risk-neutral.md"
+        },
+        {
+          "label": "XOM · Technicals",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/technicals-copy-1.md"
+        },
+        {
+          "label": "XOM · Fundamentals",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/fundamentals-copy-1.md"
+        },
+        {
+          "label": "XOM · Sentiment",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/sentiment-copy-1.md"
+        },
+        {
+          "label": "XOM · News",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/news-copy-1.md"
+        },
+        {
+          "label": "XOM · Bull thesis",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/bull-thesis.md"
+        },
+        {
+          "label": "XOM · Bear thesis",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/bear-thesis.md"
+        },
+        {
+          "label": "XOM · Trade proposal",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/trade-proposal-initial.md"
+        },
+        {
+          "label": "XOM · Risk review · aggressive",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/risk-aggressive.md"
+        },
+        {
+          "label": "XOM · Risk review · conservative",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/risk-conservative.md"
+        },
+        {
+          "label": "XOM · Risk review · neutral",
+          "path": "teams/example-energy/reports/2026-09-07/XOM/risk-neutral.md"
+        }
+      ]
+    }
+  ]
+}
