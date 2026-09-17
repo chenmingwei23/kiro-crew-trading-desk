@@ -81,7 +81,17 @@ cp config/engine/validate_config.py "$DESK_ROOT/engine/"
 
 # 3. Generate the roster for your pods and roles.
 python3 crews/gen_members.py
+```
 
+`crews/members.json` is a build product and it is tracked, so step 3 leaves your own
+pod names and coverage in a file git reports as modified. Do not commit it — or keep
+it out of your worktree entirely:
+
+```bash
+git update-index --skip-worktree crews/members.json
+```
+
+```bash
 # 4. Install the app into your gateway, then enable it in the dashboard.
 kirocrew app install .
 ```
