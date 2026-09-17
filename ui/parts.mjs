@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { appSdk, HostBoundary, resetMember, uiKit } from './data.mjs'
-import { memberTitle, phrase, t } from './i18n.mjs'
+import { getLang, memberTitle, phrase, t } from './i18n.mjs'
 import { Avatar, C, Dot, F, Ghost, L, LH, MONO, R, S, SHADOW, W, hair, memberKind, memberLetter, rule, sp } from './theme.mjs'
 
 
@@ -516,7 +516,12 @@ function dayName(ts) {
   yesterday.setDate(now.getDate() - 1)
   if (day.toDateString() === now.toDateString()) return t('day_today')
   if (day.toDateString() === yesterday.toDateString()) return t('day_yesterday')
-  return day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+  // Any other day is WORDS -- a weekday and a month name -- so it takes the
+  // reader's language, not the host's locale. `undefined` here read
+  // "Tuesday, September 8" in the middle of a Chinese transcript. The clock on
+  // each row stays on the host locale on purpose: those are digits, and their
+  // format is the platform's business rather than this app's.
+  return day.toLocaleDateString(getLang(), { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
 // ─── The item model ──────────────────────────────────────────────────────────

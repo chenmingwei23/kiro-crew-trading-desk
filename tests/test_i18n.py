@@ -475,6 +475,18 @@ console.log(JSON.stringify(out))
         assert labels[1] == yst, f"[§14] yesterday's separator in {lang}: {labels!r}"
         assert labels[2] == today, f"[§14] today's separator in {lang}: {labels!r}"
 
+    # The third separator is any older day, and it is WORDS: a weekday and a month
+    # name. Formatted on the host locale it read "Tuesday, September 8" in the
+    # middle of a Chinese transcript, so it must carry the reader's language.
+    older_en, older_zh = result["en"]["labels"][0], result["zh-CN"]["labels"][0]
+    assert not CJK.search(older_en), (
+        f"[§14] the older-day separator should be English for an English reader: {older_en!r}"
+    )
+    assert CJK.search(older_zh), (
+        "[§14] the older-day separator is not in the reader's language -- it is "
+        f"formatted on the host locale: {older_zh!r}"
+    )
+
 
 def _mask_js(text: str) -> str:
     """Blank comment and string BODIES, keeping offsets, so braces in them don't count."""
