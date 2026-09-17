@@ -581,3 +581,105 @@ def test_no_local_binding_shadows_the_translator_where_it_is_called(tmp_path: Pa
         "translator in a scope that calls it -- that scope's `t('key')` will call "
         "the local instead and throw `t is not a function`:\n" + "\n".join(live)
     )
+
+
+def test_a_dead_thread_button_states_the_true_reason(tmp_path: Path) -> None:
+    """The two refusals are different facts and must not share one sentence.
+
+    Inside a thread panel the action is refused because a thread does not nest --
+    permanent, correct, nobody's fault. On a gateway with no `POST /thread` it is
+    refused because the route is missing -- temporary, and not the reader's doing.
+    Both rendered the second sentence, so hovering the button in a panel accused
+    the backend of lacking a feature it has, and `act_thread_nested` sat in both
+    tables with nothing rendering it.
+
+    `RowActions` is called directly rather than mounted: the tooltip is the
+    `title` on the button element, which is what a reader hovers, so the assertion
+    is on the value the component puts there.
+    """
+    result = _run_node_probe(tmp_path, """
+const parts = await import(UI_DIR + '/parts.mjs')
+
+// Walk the returned element tree for the thread button's `title`.
+const titles = (node, out = []) => {
+  if (!node || typeof node !== 'object') return out
+  if (Array.isArray(node)) { node.forEach((n) => titles(n, out)); return out }
+  const p = node.props || {}
+  if (p.title) out.push({ title: p.title, disabled: !!p.disabled, label: p['aria-label'] || '' })
+  for (const v of Object.values(p)) if (v && typeof v === 'object') titles(v, out)
+  return out
+}
+
+const probe = (props) => {
+  const tree = parts.RowActions({ text: 'x', onQuote: () => {}, ...props })
+  return titles(tree)
+}
+
+const out = {}
+for (const lang of ['en', 'zh-CN']) {
+  m.setLang(lang)
+  out[lang] = {
+    nested: probe({ nested: true, onOpenThread: null }),
+    route_missing: probe({ unavailable: true, onOpenThread: null }),
+    live: probe({ onOpenThread: () => {} }),
+  }
+}
+console.log(JSON.stringify(out))
+""")
+
+    for lang in ("en", "zh-CN"):
+        nested = [r for r in result[lang]["nested"] if r["label"] not in ("", None)]
+        route = [r for r in result[lang]["route_missing"]]
+        live = [r for r in result[lang]["live"]]
+
+        nested_titles = " | ".join(r["title"] for r in nested)
+        route_titles = " | ".join(r["title"] for r in route)
+        live_titles = " | ".join(r["title"] for r in live)
+
+        # The two reasons must be different sentences, whichever language.
+        assert nested_titles != route_titles, (
+            f"[ARCHITECTURE.md §14] in {lang} a thread panel and a gateway missing "
+            f"the route give the reader the same reason: {nested_titles!r}"
+        )
+        # And the panel's reason must not be the one about the backend.
+        assert route_titles not in nested_titles, (
+            f"[§14] in {lang} the panel's dead thread button blames the backend: "
+            f"{nested_titles!r}"
+        )
+        # A live button explains what it will do, not why it cannot.
+        assert live_titles != nested_titles and live_titles != route_titles, (
+            f"[§14] in {lang} a live thread button reads as a refusal: {live_titles!r}"
+        )
+
+    # Both reasons must actually render somewhere -- a string in the tables that no
+    # code reaches is a promise to the reader that is never kept.
+    table = require_path(TABLE_FILE, "§14 the translation tables")
+    src = Path(table).read_text(encoding="utf-8")
+    for key in ("act_thread_nested", "act_thread_missing"):
+        assert key in src, f"[§14] {key} left the tables"
+    ui_src = "\n".join(
+        p.read_text(encoding="utf-8")
+        for p in sorted(Path(require_path("ui", "§0 ui track deliverable")).glob("*.mjs"))
+        if not p.as_posix().endswith(TABLE_FILE)
+    )
+    for key in ("act_thread_nested", "act_thread_missing"):
+        assert key in ui_src, f"[§14] {key} is in the tables but nothing renders it"
+
+    # RowActions is exercised above by calling it, which cannot see whether the
+    # CALLER still distinguishes the two causes. It did not: one flag carried
+    # `!onStartThread || threadRouteMissing()`, so the component had no way to tell
+    # them apart no matter what it rendered. Checked here so the fix cannot be
+    # undone from the other side while the assertions above stay green.
+    chat = Path(require_path("ui/chat.mjs", "§10 the chat surface")).read_text(encoding="utf-8")
+    call = chat.split("RowActions, {", 1)
+    assert len(call) == 2, "[§10] could not find the RowActions call site in ui/chat.mjs"
+    props = call[1][: call[1].find("children:")]
+    assert re.search(r"^\s*nested:", props, re.M), (
+        "[§14] the RowActions call site no longer reports `nested`, so a thread "
+        "panel's dead button falls back to blaming the backend"
+    )
+    folded = re.search(r"^\s*unavailable:.*onStartThread\s*\|\|", props, re.M)
+    assert not folded, (
+        "[§14] `unavailable` again folds the panel case together with the missing "
+        f"route, which makes the two reasons indistinguishable: {folded.group(0).strip()!r}"
+    )

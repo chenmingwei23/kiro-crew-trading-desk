@@ -328,9 +328,12 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
             hasThread: threads.length > 0,
             starting: starting === String(m.ts || ''),
             // A thread panel draws no reply bars and opens no threads, so it
-            // passes no `onStartThread` and its rows correctly report the action
-            // as unavailable rather than pretending to nest.
-            unavailable: !threads.length && (!onStartThread || threadRouteMissing()),
+            // passes no `onStartThread`. That is what tells the two refusals
+            // apart: no handler here means we are inside a panel and a thread
+            // cannot nest, while the route flag means the gateway itself has no
+            // `POST /thread`. Reported separately so the tooltip is true.
+            nested: !threads.length && !onStartThread,
+            unavailable: !threads.length && !!onStartThread && threadRouteMissing(),
             onOpenThread: threads.length
               ? () => onOpenThread(threads[0].id)
               : onStartThread

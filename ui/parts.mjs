@@ -402,7 +402,7 @@ function ActionIcon({ name }) {
   })
 }
 
-export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, unavailable }) {
+export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, unavailable, nested }) {
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
@@ -466,13 +466,26 @@ export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, u
         // live on any message, Slack's own rule; the only thing that disables it is
         // a gateway with no `POST /thread`, and then the tooltip says so rather than
         // leaving a dead button unexplained.
+        // A dead button owes the reader the REAL reason. There are two, and they
+        // are not the same thing: inside a thread panel the action is refused
+        // because a thread does not nest, and that is permanent and correct; on a
+        // gateway with no `POST /thread` it is refused because the route is
+        // missing, and that is temporary and not the reader's doing. Both used to
+        // say the second one, so hovering the button in a panel accused the
+        // backend of lacking a feature it has.
         hasThread
           ? null
           : btn(
               'thread',
               starting ? `${t('act_thread')}…` : t('act_thread'),
-              unavailable || starting ? null : onOpenThread,
-              unavailable ? t('act_thread_missing') : starting ? `${t('act_thread')}…` : t('act_thread_new'),
+              nested || unavailable || starting ? null : onOpenThread,
+              nested
+                ? t('act_thread_nested')
+                : unavailable
+                  ? t('act_thread_missing')
+                  : starting
+                    ? `${t('act_thread')}…`
+                    : t('act_thread_new'),
             ),
         // The copy tick stays a WORD change on the tooltip, not a second glyph: an
         // icon that swaps under the pointer reads as a different button.
