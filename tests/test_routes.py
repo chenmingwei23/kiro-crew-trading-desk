@@ -12,6 +12,7 @@ those skips fail instead.
 from __future__ import annotations
 
 import inspect
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -144,6 +145,81 @@ def _parsed_config(desk_root: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Registration shape (§1)
 # ---------------------------------------------------------------------------
+
+def test_post_client_error_records_the_stack_and_bounds_the_file(
+    routes: list[Any], app_ctx: Any, app_data_dir: Path
+) -> None:
+    """§2: a browser-side crash is written down, and a crash loop cannot grow it.
+
+    The host's error card shows ``error.message`` alone, and the message a minified
+    host component throws names nothing anyone can act on -- the stack that would
+    identify it lives in the browser. This route is how it reaches disk, so what
+    matters is that the stack survives the round trip and that a page crashing in a
+    loop overwrites its own history instead of filling the volume.
+    """
+    handler = find_route(routes, "POST", "/clienterror")
+    if handler is None:
+        pytest.skip(f"[{CLAUSE}] POST /clienterror is not registered yet")
+
+    status, payload, _ = call_route(
+        handler,
+        app_ctx,
+        method="POST",
+        path="/clienterror",
+        json_body={
+            "message": "t is not a function",
+            "stack": "TypeError: t is not a function\n    at Boom (x.mjs:1:1)",
+            "componentStack": "    at MdBody\n    at ChatPage",
+            "where": "/chat",
+            "lang": "zh-CN",
+            "hostKit": True,
+        },
+    )
+    assert status == 200, f"[{CLAUSE}] recording a crash answered {status}: {payload}"
+
+    written = app_data_dir / "client-errors.jsonl"
+    assert written.is_file(), f"[{CLAUSE}] nothing was written to {written}"
+    entry = json.loads(written.read_text(encoding="utf-8").splitlines()[-1])
+    assert entry["message"] == "t is not a function"
+    assert "at Boom (x.mjs:1:1)" in entry["stack"], (
+        f"[{CLAUSE}] the stack did not survive: without it the report says no more "
+        f"than the error card it exists to improve on"
+    )
+    assert "at MdBody" in entry["componentStack"]
+    assert entry["hostKit"] is True, (
+        f"[{CLAUSE}] hostKit was dropped; it is what says which rendering path the "
+        f"crash came from"
+    )
+    assert entry["at"], f"[{CLAUSE}] the report carries no timestamp"
+
+    # A crash loop must not grow the file without bound.
+    for n in range(40):
+        call_route(
+            handler, app_ctx, method="POST", path="/clienterror",
+            json_body={"message": f"loop {n}"},
+        )
+    lines = [ln for ln in written.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 20, (
+        f"[{CLAUSE}] {len(lines)} reports retained, expected the full window of 20. "
+        f"Too many and a page crashing in a loop grows the file without limit; too "
+        f"few and the history a crash loop needs to be understood is thrown away"
+    )
+    kept_messages = [json.loads(ln)["message"] for ln in lines]
+    assert kept_messages[-1] == "loop 39", (
+        f"[{CLAUSE}] the most recent report was dropped instead of the oldest"
+    )
+    assert kept_messages[0] == "loop 20", (
+        f"[{CLAUSE}] the retained window starts at {kept_messages[0]!r}; 41 reports "
+        f"through a 20-deep window should leave 'loop 20' through 'loop 39', so the "
+        f"entries between the oldest and the newest were discarded"
+    )
+
+    # A body that is not an object is rejected rather than stored as junk.
+    status, _, _ = call_route(
+        handler, app_ctx, method="POST", path="/clienterror", json_body=["not", "an", "object"],
+    )
+    assert status == 400, f"[{CLAUSE}] a non-object body was accepted with {status}"
+
 
 def test_registered_routes_are_approutes(routes: list[Any], app_route_cls: Any) -> None:
     assert routes, "[ARCHITECTURE.md §1] register_routes returned an empty list"

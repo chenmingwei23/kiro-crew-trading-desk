@@ -760,6 +760,26 @@ export class HostBoundary extends Component {
   }
 }
 
+/**
+ * Hand a browser-side crash to the backend, which writes it down.
+ *
+ * Best effort by construction: a failure here is swallowed, because the whole
+ * point is to describe a crash and a recorder that throws would replace the
+ * report with its own noise.
+ */
+export async function recordClientError(report) {
+  try {
+    await fetch(`${API}/clienterror`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report || {}),
+    })
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
 /** Rows the reader has sent: what a pending placeholder is waiting to become. */
 export function countSent(messages) {
   const list = Array.isArray(messages) ? messages : []

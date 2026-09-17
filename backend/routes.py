@@ -37,6 +37,9 @@ outside it is a 403. Unauthenticated callers get 401.
 from __future__ import annotations
 
 import asyncio
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from aiohttp import web
@@ -45,8 +48,15 @@ from kiro_crew.apps.route_registry import AppRoute
 
 from . import artifacts as artifacts_mod
 from . import configio, deskdata, org, reset, runview, say, slots, threadnew, threads
-from .paths import BadInput, app_root, desk_root, valid_date
+from .paths import BadInput, app_root, atomic_write_text, desk_root, valid_date
 from .respond import err, guarded, log, ok
+
+#: Where a browser-side crash report is written, inside the app's own data dir.
+_CLIENT_ERROR_FILE = "client-errors.jsonl"
+#: Reports retained. A crash loop overwrites its own history rather than growing.
+_CLIENT_ERROR_KEEP = 20
+#: Per-field ceiling. A stack is worth keeping; an unbounded one is not.
+_CLIENT_ERROR_FIELD = 8000
 
 
 def _date_param(request: web.Request) -> str | None:
@@ -144,6 +154,58 @@ async def get_file(request: web.Request, ctx: Any) -> web.Response:
         charset="utf-8",
         headers={"X-Desk-Path": relative},
     )
+
+
+@guarded
+async def post_client_error(request: web.Request, ctx: Any) -> web.Response:
+    """``POST /clienterror`` — record a browser-side crash where it can be read.
+
+    The host's error card shows ``error.message`` and nothing else, and the message
+    a MINIFIED host component throws ("t is not a function") names nothing anyone
+    can act on: the stack that would identify it lives in the browser and nowhere
+    else. So the app writes it down rather than asking a reader to copy it out of a
+    console -- a person on another machine cannot hand over a console the way they
+    can hand over a screenshot.
+
+    Bounded on both sides: an oversized report is truncated rather than refused,
+    and the file keeps only the most recent entries, so a crash loop cannot fill
+    the disk.
+    """
+    data_dir = getattr(ctx, "data_dir", None)
+    if data_dir is None:
+        return err("no data directory to record into", 503)
+    try:
+        payload = await request.json()
+    except (ValueError, TypeError):
+        raise BadInput("body must be JSON")
+    if not isinstance(payload, dict):
+        raise BadInput("body must be a JSON object")
+
+    entry = {
+        "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "message": str(payload.get("message") or "")[:_CLIENT_ERROR_FIELD],
+        "stack": str(payload.get("stack") or "")[:_CLIENT_ERROR_FIELD],
+        "componentStack": str(payload.get("componentStack") or "")[:_CLIENT_ERROR_FIELD],
+        "where": str(payload.get("where") or "")[:200],
+        "lang": str(payload.get("lang") or "")[:20],
+        "hostKit": bool(payload.get("hostKit")),
+    }
+    path = Path(data_dir) / _CLIENT_ERROR_FILE
+    await asyncio.to_thread(_append_client_error, path, entry)
+    log.warning("trading-desk client crash: %s (%s)", entry["message"], entry["where"])
+    return ok({"recorded": True, "path": str(path)})
+
+
+def _append_client_error(path: Path, entry: dict[str, Any]) -> None:
+    """Append one report, keeping only the most recent ``_CLIENT_ERROR_KEEP``."""
+    line = json.dumps(entry, ensure_ascii=False)
+    try:
+        old = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        old = []
+    kept = [ln for ln in old if ln.strip()][-(_CLIENT_ERROR_KEEP - 1):]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, "\n".join([*kept, line]) + "\n")
 
 
 @guarded
@@ -324,6 +386,7 @@ def register_routes(ctx: Any) -> list[AppRoute]:
         AppRoute("POST", "/config/apply", post_config_apply),
         AppRoute("GET", "/artifacts", get_artifacts),
         AppRoute("GET", "/file", get_file),
+        AppRoute("POST", "/clienterror", post_client_error),
         AppRoute("POST", "/member/{id}/reset", post_member_reset),
         AppRoute("GET", "/threads", get_threads),
         AppRoute("POST", "/thread", post_thread),

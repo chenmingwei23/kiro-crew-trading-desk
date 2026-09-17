@@ -1,16 +1,16 @@
 /** The app root: page routing, header, and the durable view. */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Component, useCallback, useEffect, useMemo, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { ChatPage } from './chat.mjs'
 import { ConfigPage } from './config.mjs'
-import { SLOTS_KEY, VIEW_KEY, getAppRoot, load, readJsonFile, readStore, useLoader, writeStore, SHAPE } from './data.mjs'
+import { SLOTS_KEY, VIEW_KEY, getAppRoot, load, readJsonFile, readStore, recordClientError, uiKit, useLoader, writeStore, SHAPE } from './data.mjs'
 import { DeskPage } from './desk.mjs'
 import { LogsPage } from './logs.mjs'
 import { RunPage, todayStr } from './run.mjs'
 import SettingsPage from './settings.mjs'
 import { getLang, setLang, t, useLang } from './i18n.mjs'
-import { C, DeskMark, F, L, LoadError, Pill, R, S, StaleBar, W, hair, injectKeyframes, sp } from './theme.mjs'
+import { C, DeskMark, F, L, LoadError, MONO, Pill, R, S, StaleBar, W, hair, injectKeyframes, sp } from './theme.mjs'
 
 /**
  * The five pages the backend actually serves. Labels come from the string table,
@@ -242,7 +242,81 @@ function PageBody(p) {
   return _jsx(LogsPage, { date, onDate: setDate, openPath, onOpenPath: setOpenPath })
 }
 
-export default function TradingDeskApp() {
+/**
+ * The whole app, behind a boundary that KEEPS the stack.
+ *
+ * The host's own error card shows `error.message` alone. When the throw comes from
+ * a minified host component the message is a mangled identifier -- "t is not a
+ * function" -- which names nothing anyone can act on, and the stack that would
+ * identify it stays in the browser. So this catches first: it posts the stack to
+ * the app's own `/clienterror` (readable off disk afterwards) and shows it on
+ * screen instead of a one-line mystery.
+ */
+export class AppBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { err: null, info: null }
+  }
+
+  static getDerivedStateFromError(err) {
+    return { err }
+  }
+
+  componentDidCatch(err, info) {
+    this.setState({ info })
+    // eslint-disable-next-line no-console
+    console.error('[trading-desk] app crashed:', err, info && info.componentStack)
+    recordClientError({
+      message: String((err && err.message) || err || ''),
+      stack: String((err && err.stack) || ''),
+      componentStack: String((info && info.componentStack) || ''),
+      where: typeof location === 'undefined' ? '' : String(location.hash || location.pathname || ''),
+      lang: getLang(),
+      // Whether the host kit was present matters: it decides which of the two
+      // rendering paths the crash came from.
+      hostKit: !!uiKit(),
+    })
+  }
+
+  render() {
+    const { err, info } = this.state
+    if (!err) return this.props.children
+    const stack = [String((err && err.stack) || err || ''), String((info && info.componentStack) || '')]
+      .filter(Boolean)
+      .join('\n\n')
+    return _jsxs('div', {
+      style: { padding: S.x6, display: 'flex', flexDirection: 'column', gap: S.x3, minWidth: 0 },
+      children: [
+        _jsx('div', { style: { color: C.danger, fontSize: F.h2, fontWeight: 700 }, children: t('crash_title') }),
+        _jsx('div', { style: { color: C.muted, fontSize: F.meta }, children: t('crash_note') }),
+        _jsx('pre', {
+          style: {
+            margin: 0,
+            padding: S.x3,
+            background: C.bg,
+            border: hair(C.border),
+            borderRadius: R.md,
+            overflowX: 'auto',
+            maxHeight: '60vh',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: MONO,
+            fontSize: F.micro,
+            lineHeight: 1.6,
+            color: C.text,
+          },
+          children: stack,
+        }),
+      ],
+    })
+  }
+}
+
+export default function TradingDeskAppRoot() {
+  return _jsx(AppBoundary, { children: _jsx(TradingDeskApp, {}) })
+}
+
+function TradingDeskApp() {
   const view = useMemo(() => readStore(VIEW_KEY), [])
   const [page, setPage] = useState(() => (PAGES.some((p) => p.id === view.page) ? view.page : 'chat'))
   const [date, setDate] = useState(todayStr)

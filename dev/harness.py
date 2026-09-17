@@ -301,10 +301,24 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length") or 0)
-        if length:
-            self.rfile.read(length)
-        # A send is accepted and does nothing: this harness is for looking at the
-        # page, not for driving the desk.
+        raw = self.rfile.read(length) if length else b""
+        from urllib.parse import urlparse as _urlparse
+
+        if _urlparse(self.path).path.endswith("/clienterror"):
+            # The real route writes into the app's own data dir. Here it goes to
+            # the harness's working directory, so a probe can read back what the
+            # page actually reported -- a stub that discarded it would make the
+            # recorder look wired while recording nothing.
+            try:
+                payload = json.loads(raw.decode("utf8") or "{}")
+            except (ValueError, UnicodeDecodeError):
+                return self._json({"error": "body must be JSON"}, 400)
+            target = Path("harness-client-errors.jsonl")
+            with target.open("a", encoding="utf8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            return self._json({"recorded": True, "path": str(target)})
+        # Any other send is accepted and does nothing: this harness is for looking
+        # at the page, not for driving the desk.
         self._json({"queued": True})
 
     def _param(self, name: str) -> str:
