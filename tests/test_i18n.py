@@ -23,13 +23,11 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
 
-from helpers import require_json, require_module, require_path
+from helpers import require_json, require_module, require_path, run_node_probe
 
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff]")
 
@@ -161,74 +159,6 @@ def test_no_chinese_in_comments_or_docstrings() -> None:
     )
 
 
-def _run_node_probe(tmp_path: Path, body: str) -> dict:
-    """Import the real `ui/i18n.mjs` under Node and return the probe's JSON.
-
-    The module imports `react` for its store subscription and there is no
-    `node_modules` here, so a resolve hook points that one specifier at a stub.
-    The module under test is the real file on disk, not a copy.
-    """
-    node = shutil.which("node")
-    if node is None:
-        pytest.skip("node not on PATH -- run tests/test_i18n.py manually (ARCHITECTURE.md §14)")
-    i18n = require_path(TABLE_FILE, "§14 the translation tables")
-    ui_dir = require_path("ui", "§0 ui track deliverable")
-
-    (tmp_path / "react-stub.mjs").write_text(
-        # `i18n.mjs` needs only the store hook, but a probe that imports a RENDER
-        # module (`parts.mjs`, `chat.mjs`) pulls in the jsx runtime and the hooks
-        # too, and a missing named export fails ESM linking before a single line
-        # runs. The extras are inert: they let the module load so its pure
-        # functions can be called.
-        "const noop = () => {}\n"
-        "export function useSyncExternalStore(sub, get) { return get() }\n"
-        "export function useState(v) { return [typeof v === 'function' ? v() : v, noop] }\n"
-        "export function useEffect() {}\n"
-        "export function useMemo(f) { return f() }\n"
-        "export function useRef(v) { return { current: v } }\n"
-        "export function useCallback(f) { return f }\n"
-        "export function createElement(type, props) { return { type, props } }\n"
-        "export function jsx(type, props) { return { type, props } }\n"
-        "export function jsxs(type, props) { return { type, props } }\n"
-        "export const Fragment = 'Fragment'\n"
-        "export class Component { constructor(p) { this.props = p } render() { return null } }\n"
-        "export default { useSyncExternalStore, useState, useEffect, useMemo, useRef,\n"
-        "  useCallback, createElement, jsx, jsxs, Fragment, Component }\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "hooks.mjs").write_text(
-        "import { pathToFileURL } from 'node:url'\n"
-        f"const STUB = pathToFileURL({json.dumps(str(tmp_path / 'react-stub.mjs'))}).href\n"
-        "export async function resolve(spec, ctx, next) {\n"
-        "  if (spec === 'react' || spec === 'react/jsx-runtime') return { url: STUB, shortCircuit: true }\n"
-        "  return next(spec, ctx)\n"
-        "}\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "register.mjs").write_text(
-        "import { register } from 'node:module'\n"
-        "import { pathToFileURL } from 'node:url'\n"
-        f"register(pathToFileURL({json.dumps(str(tmp_path / 'hooks.mjs'))}).href)\n",
-        encoding="utf-8",
-    )
-    preamble = (
-        "globalThis.window = { localStorage: { getItem: () => null, setItem: () => {} } }\n"
-        "Object.defineProperty(globalThis, 'navigator', "
-        "{ value: { language: 'en-US', languages: ['en-US'] }, configurable: true })\n"
-        f"const I18N = {json.dumps(str(i18n))}\n"
-        f"const UI_DIR = {json.dumps(str(ui_dir))}\n"
-        "const m = await import(I18N)\n"
-    )
-    probe = tmp_path / "probe.mjs"
-    probe.write_text(preamble + body, encoding="utf-8")
-    proc = subprocess.run(
-        [node, "--import", str(tmp_path / "register.mjs"), str(probe)],
-        capture_output=True, text=True, timeout=120,
-    )
-    assert proc.returncode == 0, f"probe failed:\n{proc.stdout}\n{proc.stderr}"
-    return json.loads(proc.stdout.strip().splitlines()[-1])
-
-
 def test_the_two_tables_carry_the_same_keys(tmp_path: Path) -> None:
     """A key present in one table and absent from the other is a silent gap.
 
@@ -236,7 +166,7 @@ def test_the_two_tables_carry_the_same_keys(tmp_path: Path) -> None:
     which is right on screen and invisible to a probe that only asks whether the
     key name came back. So the key sets are compared to each other.
     """
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 const langs = m.tableLangs()
 const sets = Object.fromEntries(langs.map((l) => [l, m.tableKeys(l)]))
 const report = {}
@@ -259,7 +189,7 @@ console.log(JSON.stringify({ langs, counts: Object.fromEntries(langs.map((l) => 
 
 def test_every_key_the_ui_asks_for_exists_in_both_tables(tmp_path: Path) -> None:
     """A key with no entry renders as its own name -- visible, and silently green."""
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 import fs from 'node:fs'
 import path from 'node:path'
 const used = new Map()
@@ -290,7 +220,7 @@ console.log(JSON.stringify({ count: used.size, missing }))
 
 def test_every_backend_phrase_has_a_chinese_reading(tmp_path: Path) -> None:
     """The leak: the backend hands over finished text, so a gap never fails a lookup."""
-    result = _run_node_probe(tmp_path, f"""
+    result = run_node_probe(tmp_path, f"""
 m.setLang('zh-CN')
 const cjk = /[\\u4e00-\\u9fff]/
 const cases = {json.dumps(BACKEND_PHRASES, ensure_ascii=False)}
@@ -305,7 +235,7 @@ console.log(JSON.stringify({{ untranslated }}))
 
 def test_crew_text_survives_both_languages(tmp_path: Path) -> None:
     """Translating someone's analysis would put words in their mouth."""
-    result = _run_node_probe(tmp_path, f"""
+    result = run_node_probe(tmp_path, f"""
 const cases = {json.dumps(CREW_TEXT, ensure_ascii=False)}
 const changed = []
 for (const lang of ['en', 'zh-CN']) {{
@@ -373,7 +303,7 @@ def test_neither_group_label_producer_bakes_in_the_word_pod(desk_root: Path) -> 
 
 def test_the_group_label_gets_the_readers_own_pod_noun(tmp_path: Path) -> None:
     """Whatever the producers wrote, the row ends in a word the reader knows."""
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 const cases = ['Core · example-megacap', 'example-megacap', 'Core+Tactical · x',
                'Core · example-megacap pod']
 const out = {}
@@ -399,7 +329,7 @@ console.log(JSON.stringify(out))
 
 def test_the_app_opens_in_english_unless_the_browser_asks_for_chinese(tmp_path: Path) -> None:
     """A public app opens in English; a Chinese browser is met in Chinese."""
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 const read = (code) => {
   const src = fs.readFileSync(I18N, 'utf8')
   return src
@@ -438,7 +368,7 @@ def test_the_day_separator_names_today_and_yesterday_in_both_languages(tmp_path:
     and must never be replaced with literals: a hard-coded date silently stops
     testing the branch that broke.
     """
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 const parts = await import(UI_DIR + '/parts.mjs')
 const now = new Date()
 const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
@@ -607,7 +537,7 @@ def test_the_row_draws_only_actions_that_can_act(tmp_path: Path) -> None:
     `RowActions` is called rather than mounted: what a reader hovers is the
     `title` on the button, so that is what is read back.
     """
-    result = _run_node_probe(tmp_path, """
+    result = run_node_probe(tmp_path, """
 const parts = await import(UI_DIR + '/parts.mjs')
 
 const buttons = (node, out = []) => {
@@ -628,6 +558,7 @@ for (const lang of ['en', 'zh-CN']) {
     quote_word: m.t('act_quote'),
     in_a_panel: probe({ nested: true, onOpenThread: null }),
     already_has_one: probe({ hasThread: true, onOpenThread: () => {} }),
+    unaddressable: probe({ unaddressable: true, onOpenThread: () => {} }),
     route_missing: probe({ unavailable: true, onOpenThread: null }),
     live: probe({ onOpenThread: () => {} }),
   }
@@ -650,10 +581,15 @@ console.log(JSON.stringify(out))
             f"[§11] in {lang} a message that already has a thread still draws a "
             f"Thread button: {case['already_has_one']!r}"
         )
-        # Quote survives both cases -- hiding one action must not hide the row --
+        assert not thread_of(case["unaddressable"]), (
+            f"[§11] in {lang} a row the gateway minted no id for still draws a "
+            f"Thread button: {case['unaddressable']!r} -- a create on it is refused "
+            "before it starts, so there is nothing for the reader to do with it"
+        )
+        # Quote survives all three cases -- hiding one action must not hide the row --
         # and it is the ONLY thing left, which is what keeps a third button from
         # reappearing here.
-        for name in ("in_a_panel", "already_has_one"):
+        for name in ("in_a_panel", "already_has_one", "unaddressable"):
             assert [r["label"] for r in case[name]] == [case["quote_word"]], (
                 f"[§11] in {lang} the {name} row should hold Quote and nothing "
                 f"else, got {case[name]!r}"
@@ -721,3 +657,95 @@ console.log(JSON.stringify(out))
         "[§11] `unavailable` again folds the panel case together with the missing "
         f"route, which makes the two indistinguishable: {folded.group(0).strip()!r}"
     )
+
+
+def test_the_foot_of_the_transcript_says_sent_and_working(tmp_path: Path) -> None:
+    """§9.2: after Enter, the transcript itself says it landed and someone is on it.
+
+    Both facts were readable only from the composer's placeholder, which describes
+    the box you type into rather than the message you already sent -- and reads the
+    same whether you have sent anything or not. A reader who pressed Enter could
+    not tell delivered from swallowed.
+
+    Two markers, each dropped when it stops being the news: `sent` goes once
+    anything comes back, because a reply is its own proof of delivery, and
+    `working` never draws next to a `streaming` row, because text arriving under
+    the member's name says more than a line claiming text is coming.
+    """
+    result = run_node_probe(tmp_path, """
+const parts = await import(UI_DIR + '/parts.mjs')
+const u = { role: 'user', content: 'how do you read the tape today' }
+const a = { role: 'assistant', content: 'risk-off, and here is why' }
+const s = { role: 'streaming', content: 'risk-' }
+
+const out = { cases: {
+  landed_idle:      parts.tailMarkers([u], false, false),
+  landed_running:   parts.tailMarkers([u], true, false),
+  still_unsent:     parts.tailMarkers([u], true, true),
+  reply_came_back:  parts.tailMarkers([u, a], false, false),
+  text_arriving:    parts.tailMarkers([u, s], true, false),
+  empty:            parts.tailMarkers([], false, false),
+} }
+for (const lang of ['en', 'zh-CN']) {
+  m.setLang(lang)
+  out[lang] = { sent: m.t('sent'), working: m.t('working_line') }
+}
+console.log(JSON.stringify(out))
+""")
+
+    case = result["cases"]
+    assert case["landed_idle"] == {"sent": True, "working": False}, (
+        f"[§9.2] a landed message with nobody working should read as sent only: "
+        f"{case['landed_idle']!r}"
+    )
+    assert case["landed_running"] == {"sent": True, "working": True}, (
+        f"[§9.2] both facts are true at once right after Enter -- it landed AND the "
+        f"turn is in flight: {case['landed_running']!r}"
+    )
+    assert case["still_unsent"]["sent"] is False, (
+        f"[§9.2] the optimistic row already says Sending, so the landing mark must "
+        f"wait for the real row: {case['still_unsent']!r}"
+    )
+    assert case["reply_came_back"]["sent"] is False, (
+        f"[§9.2] the reply is its own proof of delivery; the mark should be gone: "
+        f"{case['reply_came_back']!r}"
+    )
+    assert case["text_arriving"]["working"] is False, (
+        f"[§9.2] a streaming row IS the signal -- two indicators for one turn: "
+        f"{case['text_arriving']!r}"
+    )
+    assert case["empty"] == {"sent": False, "working": False}, (
+        f"[§9.2] an empty transcript owes neither mark: {case['empty']!r}"
+    )
+
+    for lang in ("en", "zh-CN"):
+        for key in ("sent", "working"):
+            word = result[lang][key]
+            assert word and word not in ("sent", "working_line"), (
+                f"[§14] in {lang} the {key} marker renders its own key name, so that "
+                f"table entry is missing: {word!r}"
+            )
+    assert result["en"]["working"] != result["zh-CN"]["working"], (
+        "[§14] the working marker reads the same in both languages, so one table "
+        f"holds English: {result['en']['working']!r}"
+    )
+
+    # Deciding is not drawing. The markers used to have no renderer at all, and a
+    # pure function nothing calls is the same defect as no function.
+    #
+    # The guards are matched as whole EXPRESSIONS rather than as substrings,
+    # because a substring check passes on `if (false && marks.working)` -- verified
+    # by mutation: that edit silenced the working row and the check stayed green.
+    chat = Path(require_path("ui/chat.mjs", "§9.2 the foot of the transcript")).read_text(encoding="utf-8")
+    for needed in ("tailMarkers(", "say('working_line')", "say('sent')"):
+        assert needed in chat, (
+            f"[§9.2] ui/chat.mjs no longer reads {needed!r}, so the foot of the "
+            "transcript is silent again"
+        )
+    for mark in ("sent", "working"):
+        guard = re.search(rf"^\s*if \(marks\.{mark}\) \{{$", chat, re.M)
+        assert guard, (
+            f"[§9.2] the {mark} marker is no longer drawn under `if (marks.{mark})` "
+            "alone -- anything else in that condition can switch it off while every "
+            "name this test looks for is still present in the file"
+        )

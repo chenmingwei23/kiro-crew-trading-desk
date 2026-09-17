@@ -11,6 +11,8 @@ import asyncio
 import importlib
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
@@ -213,3 +215,80 @@ def find_route(routes: list[Any], method: str, path: str) -> Any:
         if r_method == method.upper() and r_path == path:
             return getattr(route, "handler", None)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Reading a real UI module from Python
+# ---------------------------------------------------------------------------
+
+#: The translation tables. Every probe loads them as `m`, because a rendered
+#: string is a table lookup and a probe that stubbed it would prove nothing.
+_TABLE_FILE = "ui/i18n.mjs"
+
+
+def run_node_probe(tmp_path: Path, body: str) -> dict:
+    """Import the real `ui/i18n.mjs` under Node and return the probe's JSON.
+
+    The module imports `react` for its store subscription and there is no
+    `node_modules` here, so a resolve hook points that one specifier at a stub.
+    The module under test is the real file on disk, not a copy.
+    """
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not on PATH -- run tests/test_i18n.py manually (ARCHITECTURE.md §14)")
+    i18n = require_path(_TABLE_FILE, "§14 the translation tables")
+    ui_dir = require_path("ui", "§0 ui track deliverable")
+
+    (tmp_path / "react-stub.mjs").write_text(
+        # `i18n.mjs` needs only the store hook, but a probe that imports a RENDER
+        # module (`parts.mjs`, `chat.mjs`) pulls in the jsx runtime and the hooks
+        # too, and a missing named export fails ESM linking before a single line
+        # runs. The extras are inert: they let the module load so its pure
+        # functions can be called.
+        "const noop = () => {}\n"
+        "export function useSyncExternalStore(sub, get) { return get() }\n"
+        "export function useState(v) { return [typeof v === 'function' ? v() : v, noop] }\n"
+        "export function useEffect() {}\n"
+        "export function useMemo(f) { return f() }\n"
+        "export function useRef(v) { return { current: v } }\n"
+        "export function useCallback(f) { return f }\n"
+        "export function createElement(type, props) { return { type, props } }\n"
+        "export function jsx(type, props) { return { type, props } }\n"
+        "export function jsxs(type, props) { return { type, props } }\n"
+        "export const Fragment = 'Fragment'\n"
+        "export class Component { constructor(p) { this.props = p } render() { return null } }\n"
+        "export default { useSyncExternalStore, useState, useEffect, useMemo, useRef,\n"
+        "  useCallback, createElement, jsx, jsxs, Fragment, Component }\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "hooks.mjs").write_text(
+        "import { pathToFileURL } from 'node:url'\n"
+        f"const STUB = pathToFileURL({json.dumps(str(tmp_path / 'react-stub.mjs'))}).href\n"
+        "export async function resolve(spec, ctx, next) {\n"
+        "  if (spec === 'react' || spec === 'react/jsx-runtime') return { url: STUB, shortCircuit: true }\n"
+        "  return next(spec, ctx)\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "register.mjs").write_text(
+        "import { register } from 'node:module'\n"
+        "import { pathToFileURL } from 'node:url'\n"
+        f"register(pathToFileURL({json.dumps(str(tmp_path / 'hooks.mjs'))}).href)\n",
+        encoding="utf-8",
+    )
+    preamble = (
+        "globalThis.window = { localStorage: { getItem: () => null, setItem: () => {} } }\n"
+        "Object.defineProperty(globalThis, 'navigator', "
+        "{ value: { language: 'en-US', languages: ['en-US'] }, configurable: true })\n"
+        f"const I18N = {json.dumps(str(i18n))}\n"
+        f"const UI_DIR = {json.dumps(str(ui_dir))}\n"
+        "const m = await import(I18N)\n"
+    )
+    probe = tmp_path / "probe.mjs"
+    probe.write_text(preamble + body, encoding="utf-8")
+    proc = subprocess.run(
+        [node, "--import", str(tmp_path / "register.mjs"), str(probe)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, f"probe failed:\n{proc.stdout}\n{proc.stderr}"
+    return json.loads(proc.stdout.strip().splitlines()[-1])

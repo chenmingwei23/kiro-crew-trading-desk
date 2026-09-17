@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
 import { phrase, t as say } from './i18n.mjs'
 import { SHAPE, ChatBoundary, clampPanel, readShell, writeShell, asQuote, countSent, createThread, load, markThreadRouteMissing, postJson, resolveSlotKey, sendToSlot, threadRouteMissing, useLoader, useQuote, useSession, useTranscript } from './data.mjs'
-import { BAR_STACK, BODY_TEXT, COLUMN, CONVO_ROLE, ChatHead, Composer, DayDivider, FOLD_LINE, FOLD_WORD, FoldedBody, FollowUps, GUTTER_STYLE, MdBody, QUIET_PX, QuietLine, ROW_GUTTER, ROW_PAD, RowActions, STAMP_PX, SlackRow, WalkFold, chatItems, followUpsFor, keysNamed, receiptShape, parseChatOptions, quietText, rowTime, rowTimeTitle, senderMember, stripEnvelope, walkSteps } from './parts.mjs'
+import { BAR_STACK, BODY_TEXT, COLUMN, CONVO_ROLE, ChatHead, Composer, DayDivider, FOLD_LINE, FOLD_WORD, FoldedBody, FollowUps, GUTTER_STYLE, MdBody, QUIET_PX, QuietLine, ROW_GUTTER, ROW_PAD, RowActions, STAMP_PX, SlackRow, WalkFold, chatItems, followUpsFor, keysNamed, receiptShape, parseChatOptions, quietText, rowTime, rowTimeTitle, senderMember, stripEnvelope, tailMarkers, threadAnchor, walkSteps } from './parts.mjs'
 import { Avatar, C, Card, Dot, F, Ghost, L, LoadError, Loading, MONO, Notice, Pill, R, S, SHADOW, StaleBar, W, agentFor, findMember, hair, memberKind, memberLetter, sp } from './theme.mjs'
 
 /**
@@ -131,19 +131,27 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
   /**
    * Open a thread on a row that has none (§rev7 B).
    *
-   * The anchor is sent as rev5.1 ruled — `main_msg` from the gateway-minted
-   * `meta.mid`, `ts` verbatim — and the draft, if there is one, becomes the
-   * thread's first message and is cleared from the composer, because leaving it
-   * behind would let the same sentence be sent twice.
+   * The anchor is built by `threadAnchor`, which is where the request's own key
+   * names live — this used to assemble the literal here and sent the STORED name
+   * (`main_msg`) instead of the request's `mid`, so every create was refused.
+   * The preview is not sent at all: the backend reads the anchor row's own text,
+   * which is what keeps the title from being a sentence this UI invented.
+   *
+   * The draft, if there is one, becomes the thread's first message and is cleared
+   * from the composer, because leaving it behind would let the same sentence be
+   * sent twice.
    */
   const startThread = useCallback(
     async (m) => {
       if (!onStartThread || starting) return
       const key = String(m.ts || '')
-      const anchor = {
-        main_msg: (m.meta && m.meta.mid) || '',
-        ts: m.ts || '',
-        preview: stripEnvelope(m.content).text.slice(0, 80),
+      const anchor = threadAnchor(m)
+      if (!anchor.mid || !anchor.ts) {
+        // Nothing can address this row, and the button that got here is hidden for
+        // exactly that reason. Refuse locally rather than spending a request on a
+        // create the backend must refuse.
+        setThreadError(say('thread_unaddressable'))
+        return
       }
       const seed = draft.trim()
       setStarting(key)
@@ -262,13 +270,20 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placedKey, onThreadsPlaced])
   const follow = useMemo(() => followUpsFor(t.messages, t.running), [t.messages, t.running])
+  const marks = useMemo(
+    () => tailMarkers(t.messages, t.running, waiting.length > 0),
+    [t.messages, t.running, waiting.length],
+  )
   const tail = t.messages.length ? String(t.messages[t.messages.length - 1].content || '').length : 0
 
   // Stay pinned to the newest row unless the reader has scrolled up to read.
   useEffect(() => {
     const el = scroller.current
     if (el && atBottom.current) el.scrollTop = el.scrollHeight
-  }, [t.messages.length, tail, waiting.length])
+    // `marks` is in here because the working row and the sent line change the
+    // height of the transcript without adding a message -- pinned means pinned to
+    // the foot, including the part of the foot that is not a row.
+  }, [t.messages.length, tail, waiting.length, marks.sent, marks.working])
 
   const onScroll = useCallback(() => {
     const el = scroller.current
@@ -332,6 +347,10 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
             // cannot nest, while the route flag means the gateway itself has no
             // `POST /thread`. Reported separately so the tooltip is true.
             nested: !threads.length && !onStartThread,
+            // A row with no gateway-minted `mid` cannot be addressed by a create,
+            // so the button is hidden there too -- a permanent refusal, reported
+            // apart from the other two so each stays readable.
+            unaddressable: !threads.length && !threadAnchor(m).mid,
             unavailable: !threads.length && !!onStartThread && threadRouteMissing(),
             onOpenThread: threads.length
               ? () => onOpenThread(threads[0].id)
@@ -447,6 +466,36 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
         style: { color: C.muted, fontSize: QUIET_PX, padding: sp(S.x2, ROW_PAD + ROW_GUTTER) },
         children: t.loaded ? say('transcript_empty') : say('reading_session'),
       }, 'empty'),
+    )
+  }
+
+  // The foot of the transcript answers the two questions pressing Enter raises:
+  // did it go out, and is anyone working on it. `tailMarkers` decides; the shapes
+  // are the ones the app already uses for the same kinds of fact -- a quiet gutter
+  // line, and a row whose pulsing line stands in for a body not written yet.
+  if (marks.sent) {
+    rows.push(
+      _jsx('div', { style: GUTTER_STYLE, children: _jsx(QuietLine, { text: say('sent') }) }, 'sent'),
+    )
+  }
+  if (marks.working) {
+    rows.push(
+      _jsx(
+        SlackRow,
+        {
+          member,
+          agent,
+          isUser: false,
+          timestamp: '',
+          timestampTitle: '',
+          cont: false,
+          children: _jsx('div', {
+            style: { ...BODY_TEXT, color: C.muted, animation: 'td-pulse 1.4s ease-in-out infinite' },
+            children: say('working_line'),
+          }),
+        },
+        'working',
+      ),
     )
   }
 

@@ -790,6 +790,20 @@ inline chips — one click sends that choice's text — but a genuine approval d
 the host's. The manifest's `/api/approvals` grants (§5) are read scope for surfacing
 state, not a path to authoring an approval from this app.
 
+### §9.2 What the foot of the transcript owes a reader
+
+Pressing Enter raises two questions, and the transcript answers both at its foot
+rather than in the composer. **Sent** appears under a message once the optimistic row
+has been replaced by the real one, and is dropped as soon as anything comes back — a
+reply is its own proof of delivery, so a mark under every past line would be noise.
+**Working** is a row in the member's own name whose pulsing line stands in for a body
+not written yet; it is suppressed while a `streaming` row exists, because text arriving
+under that name says more than a line claiming text is coming.
+
+The composer's placeholder is not a substitute for either. It describes the box you
+type into rather than the message you already sent, and it reads the same whether you
+have sent anything or not — which is how a delivered message came to look swallowed.
+
 ---
 
 ## §10 Layout

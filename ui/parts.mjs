@@ -400,7 +400,7 @@ function ActionIcon({ name }) {
   })
 }
 
-export function RowActions({ onQuote, onOpenThread, hasThread, starting, unavailable, nested }) {
+export function RowActions({ onQuote, onOpenThread, hasThread, starting, unavailable, nested, unaddressable }) {
   const btn = (icon, label, onClick, title) =>
     _jsx('button', {
       className: 'td-act',
@@ -448,8 +448,10 @@ export function RowActions({ onQuote, onOpenThread, hasThread, starting, unavail
         //   permanent -> do not render it. A message that already has a thread
         //                gets in through the reply bar under it, and two controls
         //                for one thread read as two threads (§rev9.1 finding 6);
-        //                a row inside a thread panel cannot nest one at all.
-        //                Neither will ever change, so a greyed button and a
+        //                a row inside a thread panel cannot nest one at all; and
+        //                a row the gateway has minted no `mid` for cannot be
+        //                addressed, so a create on it is refused before it starts.
+        //                None of the three will change, so a greyed button and a
         //                tooltip only invite the reader to find a dead end.
         //   temporary -> render it disabled and say why. A gateway whose build has
         //                no `POST /thread` may gain one, and the reader did
@@ -457,7 +459,7 @@ export function RowActions({ onQuote, onOpenThread, hasThread, starting, unavail
         //
         // This shipped the other way round: a panel drew a greyed button whose
         // tooltip blamed the backend for missing a feature it has.
-        hasThread || nested
+        hasThread || nested || unaddressable
           ? null
           : btn(
               'thread',
@@ -497,6 +499,28 @@ export function rowTime(ts) {
 export function rowTimeTitle(ts) {
   const ms = Date.parse(ts || '')
   return isFinite(ms) ? new Date(ms).toLocaleString() : ''
+}
+
+/**
+ * The anchor for a row, in the shape `POST /thread` parses (ARCHITECTURE.md §8.2).
+ *
+ * One fact carries two names across this one call: the REQUEST key is `mid` and
+ * the STORED key the response reads back is `main_msg`. This sent the stored
+ * name, so `parse_body` saw no `mid` at all and refused every create with
+ * "anchor needs both mid and ts" — the Thread button could not work, on any row.
+ *
+ * A pure function rather than an object literal inside the component, so a test
+ * can hand its output to the backend's own parser instead of trusting the two
+ * names to agree by eye. `mid` comes back empty for a row the gateway has not
+ * minted one for yet, which is a row nothing can anchor; the caller reads that
+ * and draws no button rather than sending a create that must fail.
+ */
+export function threadAnchor(m) {
+  const meta = m && typeof m.meta === 'object' && m.meta ? m.meta : {}
+  return {
+    mid: typeof meta.mid === 'string' ? meta.mid.trim() : '',
+    ts: m && typeof m.ts === 'string' ? m.ts : '',
+  }
 }
 
 function dayKey(ts) {
@@ -1232,6 +1256,33 @@ export function followUpsFor(messages, running) {
     if (role === 'assistant') return parseChatOptions(m.content).options
   }
   return []
+}
+
+/**
+ * What the foot of the transcript owes the reader after they press Enter.
+ *
+ * Two facts, in the order they become true: the message is IN the conversation,
+ * and the other side is working on it. Both were readable only from the
+ * composer's placeholder — the wrong place, because it describes the box you type
+ * into rather than the message you already sent, and it says the same thing
+ * whether you have sent anything or not.
+ *
+ * `sent` is the landing, so it waits for the optimistic row to be replaced by the
+ * real one and is dropped the moment anything comes back — a reply is its own
+ * proof of delivery, and a mark under every past line would be noise.
+ *
+ * `working` is the turn being in flight. It is suppressed once a `streaming` row
+ * exists, because that row IS the signal: text arriving under the member's name
+ * says more than a line claiming text is coming.
+ */
+export function tailMarkers(messages, running, unsent) {
+  const list = Array.isArray(messages) ? messages : []
+  const last = list.length ? list[list.length - 1] : null
+  const role = String((last && last.role) || '')
+  return {
+    sent: !unsent && role === 'user',
+    working: !!running && role !== 'streaming',
+  }
 }
 
 // ─── Process rows: one quiet fold ────────────────────────────────────────────

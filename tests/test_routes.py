@@ -21,7 +21,8 @@ import pytest
 
 import schema
 from conftest import TEST_BOOK_NAME, TEST_PODS
-from helpers import SMOKE_DATE, call_route, find_route, require_json, require_module
+from helpers import (SMOKE_DATE, call_route, find_route, require_json, require_module,
+                     require_path, run_node_probe)
 
 CLAUSE = "§2 Backend API"
 
@@ -685,3 +686,61 @@ def test_date_param_is_validated(routes: list[Any], app_ctx: Any) -> None:
         assert isinstance(payload, dict) and (payload.get("error") or payload.get("errors")), (
             f"[ARCHITECTURE.md §2] GET {path} error body must carry a message, got {raw[:200]}"
         )
+
+
+def test_the_ui_anchor_is_the_shape_post_thread_parses(tmp_path: Path) -> None:
+    """§12: the anchor the UI builds is handed to the backend's own parser.
+
+    One fact wears two names across this single call. The REQUEST key is ``mid``
+    and the STORED key the ``/threads`` response reads back is ``main_msg``, and
+    the UI assembled its request with the stored name -- so ``parse_body`` found no
+    ``mid``, refused with "anchor needs both mid and ts", and NO row could open a
+    thread. Nothing caught it: the UI test never called the backend, the backend
+    test built its own anchor, and both were green.
+
+    So this reads the anchor out of the real ``ui/parts.mjs`` under Node and feeds
+    it to the real ``parse_body``. A rename on either side reddens here.
+    """
+    probe = run_node_probe(tmp_path, """
+const parts = await import(UI_DIR + '/parts.mjs')
+const row = { role: 'assistant', ts: '2026-09-17T21:53:04.512Z', meta: { mid: 'm-9f1c2ab34de5' } }
+console.log(JSON.stringify({
+  row,
+  anchor: parts.threadAnchor(row),
+  // A row the gateway has minted no id for: the UI reports it and draws no
+  // button, so the create is never attempted -- but if one arrives, the backend
+  // must still refuse it rather than store an unaddressable anchor.
+  unminted: parts.threadAnchor({ role: 'streaming', ts: row.ts }),
+}))
+""")
+    threadnew = require_module("backend/threadnew.py", "backend.threadnew", CLAUSE)
+    row, anchor = probe["row"], probe["anchor"]
+
+    assert sorted(anchor) == ["mid", "ts"], (
+        f"[ARCHITECTURE.md §12] the request anchor is `{{mid, ts}}`; the UI built "
+        f"{sorted(anchor)}. `main_msg` is the STORED name and is not read here"
+    )
+    _member, main_msg, ts, _title = threadnew.parse_body(
+        {"member_id": "fund", "anchor": anchor}
+    )
+    assert main_msg == row["meta"]["mid"], (
+        f"[§12] parse_body read {main_msg!r} as the anchor id, not the row's own "
+        f"meta.mid {row['meta']['mid']!r}"
+    )
+    assert ts == row["ts"], f"[§12] parse_body read {ts!r} as the stamp, not {row['ts']!r}"
+
+    with pytest.raises(threadnew.CreateRefused):
+        threadnew.parse_body({"member_id": "fund", "anchor": probe["unminted"]})
+
+    # Calling the builder cannot see whether the SURFACE still uses it. It did not:
+    # the literal lived inline in the component, which is how the wrong key name
+    # survived there unnoticed.
+    chat = Path(require_path("ui/chat.mjs", "§9 the chat surface")).read_text(encoding="utf-8")
+    assert "threadAnchor(m)" in chat, (
+        "[§12] ui/chat.mjs no longer builds its anchor with `threadAnchor`, so this "
+        "test proves nothing about what it sends"
+    )
+    assert "main_msg:" not in chat, (
+        "[§12] ui/chat.mjs writes a `main_msg:` key again -- that is the stored "
+        "name, and `POST /thread` reads `mid`"
+    )
