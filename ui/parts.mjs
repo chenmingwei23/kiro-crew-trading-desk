@@ -455,37 +455,32 @@ export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, u
     children: _jsxs(_Fragment, {
       children: [
         btn('quote', t('act_quote'), onQuote),
-        // Slack starts a thread on any message, so this is live whether or not a
-        // thread exists here: with one it opens it, without one it asks the
-        // backend to open one. The only state that disables it is a gateway whose
-        // build has no `POST /thread` at all, and then the tooltip says so rather
-        // than leaving a dead button unexplained.
-        // A message that already HAS a thread does not offer to start one: the reply
-        // bar sitting under it is how you get in, and two controls for one thread
-        // read as two threads (§rev9.1 finding 6). Without a thread the action is
-        // live on any message, Slack's own rule; the only thing that disables it is
-        // a gateway with no `POST /thread`, and then the tooltip says so rather than
-        // leaving a dead button unexplained.
-        // A dead button owes the reader the REAL reason. There are two, and they
-        // are not the same thing: inside a thread panel the action is refused
-        // because a thread does not nest, and that is permanent and correct; on a
-        // gateway with no `POST /thread` it is refused because the route is
-        // missing, and that is temporary and not the reader's doing. Both used to
-        // say the second one, so hovering the button in a panel accused the
-        // backend of lacking a feature it has.
-        hasThread
+        // Whether this button EXISTS is a different question from whether it is
+        // live, and what decides it is the shape of the reason:
+        //
+        //   permanent -> do not render it. A message that already has a thread
+        //                gets in through the reply bar under it, and two controls
+        //                for one thread read as two threads (§rev9.1 finding 6);
+        //                a row inside a thread panel cannot nest one at all.
+        //                Neither will ever change, so a greyed button and a
+        //                tooltip only invite the reader to find a dead end.
+        //   temporary -> render it disabled and say why. A gateway whose build has
+        //                no `POST /thread` may gain one, and the reader did
+        //                nothing to cause it, so that refusal is worth a sentence.
+        //
+        // This shipped the other way round: a panel drew a greyed button whose
+        // tooltip blamed the backend for missing a feature it has.
+        hasThread || nested
           ? null
           : btn(
               'thread',
               starting ? `${t('act_thread')}…` : t('act_thread'),
-              nested || unavailable || starting ? null : onOpenThread,
-              nested
-                ? t('act_thread_nested')
-                : unavailable
-                  ? t('act_thread_missing')
-                  : starting
-                    ? `${t('act_thread')}…`
-                    : t('act_thread_new'),
+              unavailable || starting ? null : onOpenThread,
+              unavailable
+                ? t('act_thread_missing')
+                : starting
+                  ? `${t('act_thread')}…`
+                  : t('act_thread_new'),
             ),
         // The copy tick stays a WORD change on the tooltip, not a second glyph: an
         // icon that swaps under the pointer reads as a different button.

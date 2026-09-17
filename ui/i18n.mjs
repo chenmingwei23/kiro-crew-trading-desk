@@ -430,10 +430,8 @@ const TABLE = {
     act_quote: '引用',
     act_copy: '复制',
     act_thread: '开线程',
-    act_thread_open: '打开这条消息的线程',
     act_thread_new: '在这条消息上开一条线程',
     act_thread_missing: '这个 backend 还没有开线程这个能力，正在等它上线',
-    act_thread_nested: '线程里不能再开线程',
 
     // reply bar / thread panel
     reply_n: ({ n }) => `${n} 条回复`,
@@ -621,10 +619,8 @@ const TABLE = {
     act_quote: 'Quote',
     act_copy: 'Copy',
     act_thread: 'Thread',
-    act_thread_open: 'Open this message’s thread',
     act_thread_new: 'Start a thread on this message',
     act_thread_missing: 'This backend cannot open threads yet — waiting on it',
-    act_thread_nested: 'A thread cannot contain another thread',
 
     reply_n: ({ n }) => `${n} ${n === 1 ? 'reply' : 'replies'}`,
     reply_latest: ({ time }) => `last ${time}`,
