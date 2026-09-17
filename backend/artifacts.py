@@ -1,8 +1,11 @@
 """``/artifacts`` — the file tree one run produced, grouped the way the desk reads.
 
-Groups are ordered CEO brief → macro → pods (sectors.yaml order) → risk → desk,
-and every file carries both a deskRoot-relative ``path`` and the absolute
-``abs_path`` the gateway's ``/api/file-read`` needs.
+Groups are ordered CEO brief → macro → pods (sectors.yaml order) → risk → desk.
+Every file carries a deskRoot-relative ``path``, which is what the UI asks ``/file``
+for, and an absolute ``abs_path`` for a caller that has to name the file on disk.
+The UI deliberately uses the relative one: the gateway's own ``/api/file-read``
+would take the absolute path and read anywhere, while ``/file`` below confines
+what it opens to deskRoot.
 
 ``/file`` serves a file's text directly with the same containment rule the rest of
 the backend uses: anything resolving outside deskRoot is refused, symlinks

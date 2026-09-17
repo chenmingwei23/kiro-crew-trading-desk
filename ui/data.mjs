@@ -169,9 +169,39 @@ export function getAppRoot() {
   return _appRoot
 }
 
+/**
+ * Read a file of the HOST's, by absolute path, through the gateway's reader.
+ *
+ * Only `app.json` is read this way, for the version badge: it lives in the app's
+ * install directory, which is outside the desk root, so the desk's own reader
+ * refuses it by design. Everything the DESK produces goes through
+ * `readDeskFile` instead -- see the note there.
+ */
 export async function readFile(path) {
   try {
     const r = await fetch(`/api/file-read?path=${encodeURIComponent(path)}`)
+    return r.ok ? await r.text() : null
+  } catch (err) {
+    return null
+  }
+}
+
+/**
+ * Read one of the desk's own files, by a path relative to the desk root.
+ *
+ * This goes to the app's `/file`, not the gateway's `/api/file-read`, for two
+ * reasons. The gateway's reader takes an ABSOLUTE path -- it only resolves a
+ * relative one when asked with `resolve=1`, and then against the project
+ * directory, which is not the desk root -- so a desk-relative path handed to it
+ * simply is not found. And the app's own route confines what it will open to the
+ * desk root, symlinks included, so a path that climbs out is refused rather than
+ * read. Passing `abs_path` to the gateway instead would work and would give this
+ * page the run of the filesystem, which is not a trade worth making to save a
+ * line.
+ */
+export async function readDeskFile(path) {
+  try {
+    const r = await fetch(`${API}/file?path=${encodeURIComponent(path)}`)
     return r.ok ? await r.text() : null
   } catch (err) {
     return null

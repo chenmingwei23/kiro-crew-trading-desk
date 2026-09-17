@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { phrase, t } from './i18n.mjs'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
-import { load, readFile, uiKit, useLoader, SHAPE } from './data.mjs'
+import { load, readDeskFile, uiKit, useLoader, SHAPE } from './data.mjs'
 import { C, Card, F, Ghost, L, LoadError, Loading, MONO, Notice, R, S, StaleBar, labelStyle, sp } from './theme.mjs'
 
 function DateChips({ dates, value, onChange }) {
@@ -85,7 +85,7 @@ function FileView({ path }) {
     setText(null)
     setFailed(false)
     if (!path) return undefined
-    readFile(path).then((t) => {
+    readDeskFile(path).then((t) => {
       if (!alive) return
       if (t === null) setFailed(true)
       else setText(t)

@@ -375,11 +375,6 @@ class Handler(SimpleHTTPRequestHandler):
             from backend import artifacts as artifacts_mod
 
             return self._json(artifacts_mod.build(DESK, self._date()))
-        if path == f"{api}/artifact":
-            from backend import artifacts as artifacts_mod
-
-            text, name = artifacts_mod.read_file(DESK, self._param("path"))
-            return self._json({"text": text, "path": name})
         if path == "/api/file-read":
             # RAW TEXT, which is what the gateway's own route returns
             # (dashboard/handlers/files.py: `web.Response(text=content, ...)`). An
@@ -400,7 +395,30 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
             return
         if path.startswith(f"{api}/file"):
-            return self._json({"text": "", "path": ""})
+            # The app's OWN reader: a DESK-RELATIVE path, confined to the desk
+            # root by `artifacts.read_file`, answered as RAW TEXT with the
+            # resolved path in a header -- exactly what `backend/routes.py`
+            # `get_file` returns. This used to answer `{"text": "", "path": ""}`
+            # for every request, which is the worst kind of harness lie: the
+            # Output page rendered an empty file instead of an error, so a
+            # reader that could not work still looked like it did.
+            from backend import artifacts as artifacts_mod
+
+            try:
+                text, relative = artifacts_mod.read_file(DESK, self._param("path"))
+            except FileNotFoundError as exc:
+                return self._json({"error": f"not found: {exc}"}, 404)
+            except ValueError as exc:
+                return self._json({"error": str(exc)}, 413)
+            body = text.encode("utf8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Desk-Path", relative)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         # Anything else is a static file out of the app directory.
         if path.startswith("/ui/") or path.endswith(".svg"):

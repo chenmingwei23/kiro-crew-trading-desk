@@ -74,3 +74,49 @@ def test_ui_does_not_fetch_the_gateway_shadowed_config_route() -> None:
         "[ARCHITECTURE.md §2] the UI never fetches '/deskconfig', so the Config page has "
         "no live data source"
     )
+
+
+def test_output_page_reads_desk_files_through_the_apps_own_reader() -> None:
+    """§2: a desk-relative path goes to the app's ``/file``, never the gateway's.
+
+    The gateway's ``/api/file-read`` takes an ABSOLUTE path -- it resolves a
+    relative one only when asked with ``resolve=1``, and then against the project
+    directory, which is not the desk root. So a desk-relative path handed to it
+    is simply not found, and every Output row answers "cannot open this file".
+    The app's own route takes the relative path and confines what it opens to the
+    desk root, which is why the Output page uses that one.
+    """
+    ui = require_path("ui", "§0 ui track deliverable")
+    data_src = (ui / "data.mjs").read_text(encoding="utf-8")
+    logs_src = (ui / "logs.mjs").read_text(encoding="utf-8")
+
+    assert re.search(r"""fetch\(`\$\{API\}/file\?path=""", data_src), (
+        "[ARCHITECTURE.md §2] readDeskFile must fetch the app's own '/file' route; "
+        "no such fetch found in ui/data.mjs"
+    )
+    assert "readDeskFile(path)" in logs_src, (
+        "[ARCHITECTURE.md §2] the Output page's file view must read through "
+        "readDeskFile; a desk-relative path sent to the gateway's reader 404s"
+    )
+    assert "readFile" not in logs_src, (
+        "[ARCHITECTURE.md §2] ui/logs.mjs references readFile, which reads HOST paths "
+        "through the gateway; desk artifacts must go through readDeskFile"
+    )
+
+    # The host reader still has exactly one caller: app.json, for the version
+    # badge. It lives in the install directory, outside the desk root, so the
+    # desk's own reader refuses it by design.
+    host_callers = {
+        p.name
+        for p in sorted(ui.glob("*.mjs"))
+        if not re.match(r"index-\d+\.mjs$", p.name)
+        and re.search(r"\breadFile\(|\breadJsonFile\(", p.read_text(encoding="utf-8"))
+    }
+    assert host_callers == {"data.mjs", "index.mjs"}, (
+        "[ARCHITECTURE.md §2] the gateway's host reader is for app.json alone; "
+        f"unexpected callers: {sorted(host_callers - {'data.mjs', 'index.mjs'})}"
+    )
+    assert re.search(r"""readJsonFile\(`\$\{root\}/app\.json`\)""", (ui / "index.mjs").read_text(encoding="utf-8")), (
+        "[ARCHITECTURE.md §2] the version badge no longer reads app.json through the "
+        "host reader, so readFile has no remaining reason to exist"
+    )
