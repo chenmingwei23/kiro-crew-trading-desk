@@ -65,6 +65,9 @@ a missing directory reads as "nothing yet", never as an error.
 Requires a KiroCrew gateway, Python 3.11+ and PyYAML.
 
 ```bash
+git clone https://github.com/chenmingwei23/kiro-crew-trading-desk.git
+cd kiro-crew-trading-desk
+
 # 1. Pick a desk root and scaffold it from the shipped examples.
 export DESK_ROOT="$HOME/trading-desk"
 mkdir -p "$DESK_ROOT/engine"
