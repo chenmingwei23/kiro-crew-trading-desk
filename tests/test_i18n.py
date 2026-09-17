@@ -583,10 +583,10 @@ def test_no_local_binding_shadows_the_translator_where_it_is_called(tmp_path: Pa
     )
 
 
-def test_the_thread_button_is_hidden_when_it_can_never_act(tmp_path: Path) -> None:
+def test_the_row_draws_only_actions_that_can_act(tmp_path: Path) -> None:
     """A permanent refusal is not drawn; a temporary one is drawn and explained.
 
-    Two reasons stop this button, and they are different KINDS of fact. A row
+    Two reasons stop the Thread button, and they are different KINDS of fact. A row
     inside a thread panel can never nest a thread, and a message that already has
     one gets in through its reply bar -- neither will change, so a greyed button
     there only invites the reader to find a dead end. A gateway whose build has no
@@ -597,6 +597,12 @@ def test_the_thread_button_is_hidden_when_it_can_never_act(tmp_path: Path) -> No
     read "This backend cannot open threads yet", accusing the gateway of missing a
     feature it has. Hiding it is what the codebase already does for the
     already-has-a-thread case, so the two agree now.
+
+    The counts are asserted exactly, which is what holds the row to the actions of
+    the surface it replicates. A copy-the-text button was the third one here; the
+    platform already copies a selection, and ours could only report success in its
+    own tooltip, so a click looked like nothing happening -- the row read as
+    buttons that open nothing.
 
     `RowActions` is called rather than mounted: what a reader hovers is the
     `title` on the button, so that is what is read back.
@@ -612,13 +618,14 @@ const buttons = (node, out = []) => {
   for (const v of Object.values(p)) if (v && typeof v === 'object') buttons(v, out)
   return out
 }
-const probe = (props) => buttons(parts.RowActions({ text: 'x', onQuote: () => {}, ...props }))
+const probe = (props) => buttons(parts.RowActions({ onQuote: () => {}, ...props }))
 
 const out = {}
 for (const lang of ['en', 'zh-CN']) {
   m.setLang(lang)
   out[lang] = {
     thread_word: m.t('act_thread'),
+    quote_word: m.t('act_quote'),
     in_a_panel: probe({ nested: true, onOpenThread: null }),
     already_has_one: probe({ hasThread: true, onOpenThread: () => {} }),
     route_missing: probe({ unavailable: true, onOpenThread: null }),
@@ -643,10 +650,13 @@ console.log(JSON.stringify(out))
             f"[§11] in {lang} a message that already has a thread still draws a "
             f"Thread button: {case['already_has_one']!r}"
         )
-        # The other two actions survive both cases -- hiding one must not hide the row.
+        # Quote survives both cases -- hiding one action must not hide the row --
+        # and it is the ONLY thing left, which is what keeps a third button from
+        # reappearing here.
         for name in ("in_a_panel", "already_has_one"):
-            assert len(case[name]) == 2, (
-                f"[§11] in {lang} the {name} row should keep Quote and Copy, got {case[name]!r}"
+            assert [r["label"] for r in case[name]] == [case["quote_word"]], (
+                f"[§11] in {lang} the {name} row should hold Quote and nothing "
+                f"else, got {case[name]!r}"
             )
 
         # Temporary: drawn, dead, and explained.
@@ -668,17 +678,31 @@ console.log(JSON.stringify(out))
         assert live[0]["title"] != missing[0]["title"], (
             f"[§11] in {lang} a live button reads as a refusal: {live[0]!r}"
         )
+        assert [r["label"] for r in case["live"]] == [case["quote_word"], word], (
+            f"[§11] in {lang} the full row should read Quote then Thread, got "
+            f"{case['live']!r}"
+        )
 
     # A tooltip string nothing renders is a promise to the reader never kept, and
     # it also hides which refusals the product actually has. Both of these used to
     # sit in the tables unrendered -- `act_thread_nested` because the panel showed
     # the wrong one, `act_thread_open` because that button is hidden, not labelled.
     table = Path(require_path(TABLE_FILE, "§14 the translation tables")).read_text(encoding="utf-8")
-    for gone in ("act_thread_nested", "act_thread_open"):
+    for gone in ("act_thread_nested", "act_thread_open", "act_copy"):
         assert gone not in table, (
             f"[§14] {gone} is back in the tables; if something now renders it, assert "
             "that here instead of leaving it unreachable"
         )
+
+    # The row reads the message body for the quote only. Reaching the clipboard
+    # from here is the button that was removed, so its absence is the check --
+    # counting buttons cannot see a handler wired to an existing one.
+    render = Path(require_path("ui/parts.mjs", "§11 the row actions")).read_text(encoding="utf-8")
+    assert "clipboard" not in render, (
+        "[§11] the row reaches for the clipboard again; the platform copies a "
+        "selection, and a control that can only report success in its own tooltip "
+        "reads as a button that does nothing"
+    )
 
     # RowActions is exercised by calling it, which cannot see whether the CALLER
     # still reports the two causes apart. It did not: one flag carried

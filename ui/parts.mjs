@@ -382,8 +382,6 @@ const ICON_PATHS = {
   quote: ['M4.5 4.5v7', 'M8 5.5h4.5', 'M8 8h4.5', 'M8 10.5h3'],
   // A conversation that continues somewhere else: a bubble with a tail.
   thread: ['M2.5 4.75A1.25 1.25 0 0 1 3.75 3.5h8.5A1.25 1.25 0 0 1 13.5 4.75v4.5A1.25 1.25 0 0 1 12.25 10.5H6.5L3.5 13v-2.5A1.25 1.25 0 0 1 2.5 9.25z'],
-  // Two sheets, one behind the other.
-  copy: ['M6 6.5h6.5v6.5H6z', 'M9.5 6.5V4H3.5v6.5H6'],
 }
 
 function ActionIcon({ name }) {
@@ -402,18 +400,7 @@ function ActionIcon({ name }) {
   })
 }
 
-export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, unavailable, nested }) {
-  const [copied, setCopied] = useState(false)
-
-  const copy = () => {
-    const clip = typeof navigator !== 'undefined' && navigator.clipboard
-    if (clip && clip.writeText) {
-      clip.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
-    }
-  }
-
+export function RowActions({ onQuote, onOpenThread, hasThread, starting, unavailable, nested }) {
   const btn = (icon, label, onClick, title) =>
     _jsx('button', {
       className: 'td-act',
@@ -482,9 +469,12 @@ export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, u
                   ? `${t('act_thread')}…`
                   : t('act_thread_new'),
             ),
-        // The copy tick stays a WORD change on the tooltip, not a second glyph: an
-        // icon that swaps under the pointer reads as a different button.
-        btn('copy', copied ? `${t('act_copy')} ✓` : t('act_copy'), copy),
+        // There is no copy button, and that is deliberate. The row this replicates
+        // holds react / reply in thread / share / save and an overflow menu — a
+        // copy-the-text control is not one of them, because the platform already
+        // copies a selection. Ours also had nowhere to show that it worked: the
+        // tick lived in the tooltip, so a click looked like nothing happening,
+        // which is how the row came to read as three buttons that open nothing.
       ],
     }),
   })

@@ -428,7 +428,6 @@ const TABLE = {
 
     // row actions
     act_quote: '引用',
-    act_copy: '复制',
     act_thread: '开线程',
     act_thread_new: '在这条消息上开一条线程',
     act_thread_missing: '这个 backend 还没有开线程这个能力，正在等它上线',
@@ -617,7 +616,6 @@ const TABLE = {
     no_session_hint: 'No work has been given to this colleague yet. Say something and a conversation opens.',
 
     act_quote: 'Quote',
-    act_copy: 'Copy',
     act_thread: 'Thread',
     act_thread_new: 'Start a thread on this message',
     act_thread_missing: 'This backend cannot open threads yet — waiting on it',

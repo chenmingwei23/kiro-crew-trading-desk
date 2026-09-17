@@ -323,7 +323,6 @@ function ChatStream({ slotKey, member, agent, members, threads, threadFor, openT
           timestampTitle: rowTimeTitle(it.kind === 'turn' ? it.ts : m.ts),
           cont: it.kind === 'turn' ? false : it.cont,
           actions: _jsx(RowActions, {
-            text: body,
             onQuote: () => setDraft((d) => asQuote(body) + d),
             hasThread: threads.length > 0,
             starting: starting === String(m.ts || ''),
