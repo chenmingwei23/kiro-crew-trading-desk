@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
-import { appSdk, resetMember, uiKit } from './data.mjs'
+import { appSdk, HostBoundary, resetMember, uiKit } from './data.mjs'
 import { memberTitle, phrase, t } from './i18n.mjs'
 import { Avatar, C, Dot, F, Ghost, L, LH, MONO, R, S, SHADOW, W, hair, memberKind, memberLetter, rule, sp } from './theme.mjs'
 
@@ -1072,8 +1072,12 @@ export function MdBody({ text, onOpenSession }) {
   const kit = uiKit()
   const Renderer = kit && kit.MarkdownRenderer
   const source = stripInternalAsides(text)
-  if (Renderer) {
-    return _jsx('div', {
+  const own = _jsx(MdBodySelf, { source, onOpenSession })
+  if (!Renderer) return own
+  return _jsx(HostBoundary, {
+    resetKey: source,
+    fallback: own,
+    children: _jsx('div', {
       className: 'td-md td-md-host',
       style: { minWidth: 0, fontSize: `${READ_PX}px`, lineHeight: `${READ_LH_PX}px` },
       children: _jsx(Renderer, {
@@ -1083,8 +1087,12 @@ export function MdBody({ text, onOpenSession }) {
         onSessionOpen: onOpenSession,
         collapseDiffs: true,
       }),
-    })
-  }
+    }),
+  })
+}
+
+/** The app's own markdown, and the fallback when the host's renderer throws. */
+function MdBodySelf({ source, onOpenSession }) {
   const blocks = mdBlocks(source)
   return _jsx('div', {
     className: 'td-md',

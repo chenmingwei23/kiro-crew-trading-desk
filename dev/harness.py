@@ -266,10 +266,19 @@ PAGE = """<!DOCTYPE html>
   import { createRoot } from 'react-dom/client'
   // The host's module map. ChatEmbed is deliberately NOT provided: this app draws
   // its own transcript (§14.1), so a stub for it would test nothing real.
-  window.__kirocrew_modules = { '@kirocrew/app-sdk': {
-    parseOptions: null,
-    appConfig: { appRoot: '__APP_ROOT__' },
-  } }
+  //
+  // MERGED, not assigned. A plain `window.__kirocrew_modules = {...}` silently
+  // discarded anything a probe had installed before the page's scripts ran, so
+  // every "with a host kit" run was really a run WITHOUT one -- the host
+  // renderer path (`uiKit()`, §10.3) went untested while the results said
+  // otherwise. Merging lets a probe supply `@kirocrew/ui` and have the app
+  // actually take that branch.
+  window.__kirocrew_modules = Object.assign(window.__kirocrew_modules || {}, {
+    '@kirocrew/app-sdk': {
+      parseOptions: null,
+      appConfig: { appRoot: '__APP_ROOT__' },
+    },
+  })
   const mod = await import('./ui/index.mjs?v=' + Date.now())
   createRoot(document.getElementById('root')).render(createElement(mod.default))
 </script>

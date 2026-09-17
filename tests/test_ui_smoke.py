@@ -76,6 +76,50 @@ def test_ui_does_not_fetch_the_gateway_shadowed_config_route() -> None:
     )
 
 
+def test_host_components_are_rendered_behind_a_fallback_boundary() -> None:
+    """§10.3: a throw inside a HOST component costs one body, not the app.
+
+    The app borrows the dashboard's markdown renderer. That component is
+    maintained on the other side of an interface this app does not control, and
+    an unguarded throw inside it took the whole chat view down -- one message the
+    renderer could not handle left the reader an empty page carrying the host's
+    own error text. Every host component is therefore rendered inside
+    ``HostBoundary`` with the app's own rendering as the fallback, and with a
+    ``resetKey`` so the swap is per-body: an error boundary latches, so without
+    one bad body the fallback would hold for the rest of the session.
+    """
+    ui = require_path("ui", "§0 ui track deliverable")
+    data_src = (ui / "data.mjs").read_text(encoding="utf-8")
+    assert "export class HostBoundary" in data_src, (
+        "[ARCHITECTURE.md §10.3] HostBoundary is gone; a host component throw would "
+        "again take the app down"
+    )
+    assert re.search(r"componentDidUpdate\(prev\)[\s\S]{0,220}resetKey", data_src), (
+        "[ARCHITECTURE.md §10.3] HostBoundary no longer resets on resetKey, so one "
+        "body the host cannot render holds the fallback for the whole session"
+    )
+
+    for name in ("parts.mjs", "logs.mjs"):
+        src = (ui / name).read_text(encoding="utf-8")
+        if "MarkdownRenderer" not in src:
+            continue
+        assert "HostBoundary" in src, (
+            f"[ARCHITECTURE.md §10.3] ui/{name} renders the host's MarkdownRenderer "
+            f"without HostBoundary, so a throw inside it takes the app down"
+        )
+        # The fallback has to be a real subtree, not an empty placeholder: the
+        # point is that the reader still gets the text.
+        assert re.search(r"fallback:\s*own", src), (
+            f"[ARCHITECTURE.md §10.3] ui/{name} passes no app-drawn fallback to "
+            f"HostBoundary, so a host throw would blank the body instead of "
+            f"falling back to the app's own rendering"
+        )
+        assert re.search(r"resetKey:\s*\w", src), (
+            f"[ARCHITECTURE.md §10.3] ui/{name} passes no resetKey, so the boundary "
+            f"latches on the first body the host cannot render"
+        )
+
+
 def test_output_page_reads_desk_files_through_the_apps_own_reader() -> None:
     """§2: a desk-relative path goes to the app's ``/file``, never the gateway's.
 

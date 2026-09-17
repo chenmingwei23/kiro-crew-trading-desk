@@ -719,6 +719,47 @@ export class ChatBoundary extends Component {
   }
 }
 
+/**
+ * Render `children`, and if they throw, render `fallback` instead.
+ *
+ * For a HOST component. The app borrows the dashboard's markdown renderer, which
+ * is a large component maintained on the other side of an interface this app does
+ * not control, and a throw inside it is not this app's failure to recover from --
+ * yet without this it took the whole chat view down and left the reader an empty
+ * page. So the host is attempted, and on a throw the app's own rendering takes
+ * over: the reader loses tables and task boxes for that one body, not the app.
+ *
+ * `resetKey` is what makes the swap per-body rather than permanent. An error
+ * boundary latches once tripped, so without it one message the host could not
+ * render would hold every later message on the fallback for the rest of the
+ * session.
+ */
+export class HostBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { broken: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { broken: true }
+  }
+
+  componentDidCatch(err) {
+    // eslint-disable-next-line no-console
+    console.error('[trading-desk] host component threw, using the app\'s own rendering:', err)
+  }
+
+  componentDidUpdate(prev) {
+    if (this.state.broken && prev.resetKey !== this.props.resetKey) {
+      this.setState({ broken: false })
+    }
+  }
+
+  render() {
+    return this.state.broken ? this.props.fallback : this.props.children
+  }
+}
+
 /** Rows the reader has sent: what a pending placeholder is waiting to become. */
 export function countSent(messages) {
   const list = Array.isArray(messages) ? messages : []

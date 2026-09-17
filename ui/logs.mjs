@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { phrase, t } from './i18n.mjs'
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from 'react/jsx-runtime'
-import { load, readDeskFile, uiKit, useLoader, SHAPE } from './data.mjs'
+import { HostBoundary, load, readDeskFile, uiKit, useLoader, SHAPE } from './data.mjs'
 import { C, Card, F, Ghost, L, LoadError, Loading, MONO, Notice, R, S, StaleBar, labelStyle, sp } from './theme.mjs'
 
 function DateChips({ dates, value, onChange }) {
@@ -59,10 +59,7 @@ function FileTree({ tree, activePath, onPick }) {
 
 function FileBody({ text }) {
   const kit = uiKit()
-  if (kit && kit.MarkdownRenderer) {
-    return _jsx(kit.MarkdownRenderer, { content: text })
-  }
-  return _jsx('pre', {
+  const own = _jsx('pre', {
     style: {
       margin: 0,
       whiteSpace: 'pre-wrap',
@@ -73,6 +70,14 @@ function FileBody({ text }) {
       color: C.text,
     },
     children: text,
+  })
+  if (!kit || !kit.MarkdownRenderer) return own
+  // The host's renderer is attempted, but a throw inside it must cost this one
+  // file's formatting rather than the page -- see HostBoundary.
+  return _jsx(HostBoundary, {
+    resetKey: text,
+    fallback: own,
+    children: _jsx(kit.MarkdownRenderer, { content: text }),
   })
 }
 
