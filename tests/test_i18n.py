@@ -175,8 +175,25 @@ def _run_node_probe(tmp_path: Path, body: str) -> dict:
     ui_dir = require_path("ui", "§0 ui track deliverable")
 
     (tmp_path / "react-stub.mjs").write_text(
+        # `i18n.mjs` needs only the store hook, but a probe that imports a RENDER
+        # module (`parts.mjs`, `chat.mjs`) pulls in the jsx runtime and the hooks
+        # too, and a missing named export fails ESM linking before a single line
+        # runs. The extras are inert: they let the module load so its pure
+        # functions can be called.
+        "const noop = () => {}\n"
         "export function useSyncExternalStore(sub, get) { return get() }\n"
-        "export default { useSyncExternalStore }\n",
+        "export function useState(v) { return [typeof v === 'function' ? v() : v, noop] }\n"
+        "export function useEffect() {}\n"
+        "export function useMemo(f) { return f() }\n"
+        "export function useRef(v) { return { current: v } }\n"
+        "export function useCallback(f) { return f }\n"
+        "export function createElement(type, props) { return { type, props } }\n"
+        "export function jsx(type, props) { return { type, props } }\n"
+        "export function jsxs(type, props) { return { type, props } }\n"
+        "export const Fragment = 'Fragment'\n"
+        "export class Component { constructor(p) { this.props = p } render() { return null } }\n"
+        "export default { useSyncExternalStore, useState, useEffect, useMemo, useRef,\n"
+        "  useCallback, createElement, jsx, jsxs, Fragment, Component }\n",
         encoding="utf-8",
     )
     (tmp_path / "hooks.mjs").write_text(
@@ -399,3 +416,156 @@ console.log(JSON.stringify({
     assert result["defaults_to_en"], "[§14] detect() must fall back to English, not Chinese"
     assert result["reads_browser"], "[§14] detect() must meet a Chinese browser in Chinese"
     assert result["honours_saved"], "[§14] a saved preference must still win"
+
+
+# ─── The translator must not be shadowed ─────────────────────────────────────
+#
+# `parts.mjs` imports `t` at module level and calls it as `t('key')`. A local
+# binding named `t` shadows that import for its whole scope, so the call site
+# reaches whatever the local holds. `dayName` held a parsed timestamp -- a NUMBER --
+# and the page died with `t is not a function`, taking the entire chat view with
+# it. The two tests below come at it from both ends: one runs the real code on the
+# real clock, the other reads every module for the shape that caused it.
+
+
+def test_the_day_separator_names_today_and_yesterday_in_both_languages(tmp_path: Path) -> None:
+    """The row separator must reach the translator, which needs today's clock.
+
+    `dayName` only calls the translator on TODAY and YESTERDAY -- every other date
+    takes a `toLocaleDateString` branch that touches nothing. Every fixture in this
+    repo is dated in the past, so the whole suite passed while the live app crashed
+    on open. The timestamps here are therefore computed from the clock at run time
+    and must never be replaced with literals: a hard-coded date silently stops
+    testing the branch that broke.
+    """
+    result = _run_node_probe(tmp_path, """
+const parts = await import(UI_DIR + '/parts.mjs')
+const now = new Date()
+const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
+const older = new Date(now); older.setDate(now.getDate() - 9)
+const msgs = [
+  { role: 'user', ts: older.toISOString(), content: 'an older day' },
+  { role: 'user', ts: yesterday.toISOString(), content: 'yesterday' },
+  { role: 'user', ts: now.toISOString(), content: 'today' },
+]
+const out = {}
+for (const lang of ['en', 'zh-CN']) {
+  m.setLang(lang)
+  try {
+    const rows = parts.chatItems(msgs, {}).filter((i) => i.kind === 'day')
+    out[lang] = { labels: rows.map((r) => r.label), error: null }
+  } catch (e) {
+    out[lang] = { labels: null, error: String((e && e.message) || e) }
+  }
+}
+console.log(JSON.stringify(out))
+""")
+    for lang in ("en", "zh-CN"):
+        assert result[lang]["error"] is None, (
+            f"[ARCHITECTURE.md §14] building the transcript threw in {lang}: "
+            f"{result[lang]['error']} -- a local binding is shadowing the imported `t`"
+        )
+
+    expected = {"en": ("Yesterday", "Today"), "zh-CN": ("昨天", "今天")}
+    for lang, (yst, today) in expected.items():
+        labels = result[lang]["labels"]
+        assert len(labels) == 3, (
+            f"[§14] expected three day separators in {lang}, got {labels!r}"
+        )
+        assert labels[1] == yst, f"[§14] yesterday's separator in {lang}: {labels!r}"
+        assert labels[2] == today, f"[§14] today's separator in {lang}: {labels!r}"
+
+
+def _mask_js(text: str) -> str:
+    """Blank comment and string BODIES, keeping offsets, so braces in them don't count."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        two = text[i : i + 2]
+        if two == "//":
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i))
+            i = j
+        elif two == "/*":
+            j = text.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            out.append("".join(c if c == "\n" else " " for c in text[i:j]))
+            i = j
+        elif text[i] in "'\"`":
+            quote, j = text[i], i + 1
+            while j < n and text[j] != quote:
+                j += 2 if text[j] == "\\" else 1
+            j = min(j + 1, n)
+            out.append(text[i] + "".join(c if c == "\n" else " " for c in text[i + 1 : j]))
+            i = j
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+#: A local binding named `t`: a declaration, or a parameter on its own.
+_T_BINDING = re.compile(
+    r"(?:(?:const|let|var)\s+t\s*=)"
+    r"|(?:\(\s*t\s*\)\s*=>)"
+    r"|(?:\(\s*t\s*,)"
+    r"|(?:function\s+\w+\s*\(\s*t\s*[,)])"
+)
+#: A translator call. `.t(` and `foo_t(` are other things and must not match.
+_T_CALL = re.compile(r"(?<![A-Za-z0-9_.$])t\(\s*['\"]")
+
+
+def test_no_local_binding_shadows_the_translator_where_it_is_called(tmp_path: Path) -> None:
+    """A local `t` in a scope that also calls `t('key')` is the crash, statically.
+
+    Scope is found by matching braces to the INNERMOST block containing the
+    binding. Scanning forward for the next `{` instead lands on whatever block the
+    binding's own statement opens, which blames an unrelated function and misses
+    the real one -- that mistake pointed at `rowTime` while `dayName` was the bug.
+
+    A shadow in a scope with no translator call is allowed: `t` for a thread object
+    reads fine in a list callback. This check is what makes that safe, because the
+    day a translator call joins one of those scopes, it fails here.
+    """
+    ui_dir = require_path("ui", "§0 ui track deliverable")
+    live: list[str] = []
+    for path in sorted(Path(ui_dir).glob("*.mjs")):
+        if path.as_posix().endswith(TABLE_FILE):
+            continue  # the table defines `t`; it does not consume it
+        text = path.read_text(encoding="utf-8")
+        masked = _mask_js(text)
+
+        stack: list[int] = []
+        pairs: list[tuple[int, int]] = []
+        for idx, ch in enumerate(masked):
+            if ch == "{":
+                stack.append(idx)
+            elif ch == "}" and stack:
+                pairs.append((stack.pop(), idx))
+
+        for bind in _T_BINDING.finditer(masked):
+            inner = None
+            for lo, hi in pairs:
+                if lo < bind.start() < hi and (inner is None or lo > inner[0]):
+                    inner = (lo, hi)
+            if inner is None:
+                continue
+            body = masked[inner[0] : inner[1]]
+            calls = [
+                masked[: inner[0] + c.start()].count("\n") + 1
+                for c in _T_CALL.finditer(body)
+            ]
+            if calls:
+                line = text[: bind.start()].count("\n") + 1
+                src = text.splitlines()[line - 1].strip()
+                live.append(
+                    f"{path.name}:{line}  {src}\n"
+                    f"      but the same scope calls the translator at line(s) {calls}"
+                )
+
+    assert not live, (
+        "[ARCHITECTURE.md §14] a local binding named `t` shadows the imported "
+        "translator in a scope that calls it -- that scope's `t('key')` will call "
+        "the local instead and throw `t is not a function`:\n" + "\n".join(live)
+    )

@@ -482,28 +482,35 @@ export function RowActions({ onQuote, onOpenThread, text, hasThread, starting, u
   })
 }
 
+// The parsed-milliseconds local is named `ms`, never `t`. `t` is this module's
+// imported translator (line 6), and a local of that name shadows it for the whole
+// function -- so a later edit that adds a translator call gets a number where it
+// expects a function and the page dies with `t is not a function`. That is not a
+// hypothetical: `dayName` shipped that way, and because it only reaches the
+// translator on TODAY and YESTERDAY, every fixture-dated test passed.
+
 /** Clock on a row, and the full stamp behind it. */
 export function rowTime(ts) {
-  const t = Date.parse(ts || '')
-  if (!isFinite(t)) return ''
-  return new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const ms = Date.parse(ts || '')
+  if (!isFinite(ms)) return ''
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
 export function rowTimeTitle(ts) {
-  const t = Date.parse(ts || '')
-  return isFinite(t) ? new Date(t).toLocaleString() : ''
+  const ms = Date.parse(ts || '')
+  return isFinite(ms) ? new Date(ms).toLocaleString() : ''
 }
 
 function dayKey(ts) {
-  const t = Date.parse(ts || '')
-  return isFinite(t) ? new Date(t).toDateString() : ''
+  const ms = Date.parse(ts || '')
+  return isFinite(ms) ? new Date(ms).toDateString() : ''
 }
 
 /** Slack names the two days a reader has a word for, and dates the rest. */
 function dayName(ts) {
-  const t = Date.parse(ts || '')
-  if (!isFinite(t)) return ''
-  const day = new Date(t)
+  const ms = Date.parse(ts || '')
+  if (!isFinite(ms)) return ''
+  const day = new Date(ms)
   const now = new Date()
   const yesterday = new Date(now)
   yesterday.setDate(now.getDate() - 1)
